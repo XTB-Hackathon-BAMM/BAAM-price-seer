@@ -35,7 +35,7 @@ class PredictionApplicationServiceTest {
         priceRepository = InMemoryPriceRepository()
         sut = PredictionApplicationService(
             priceRepository, predictionPort, sentPredictionRepository,
-            defaultStrategy, cryptoStrategy, "BAAM"
+            defaultStrategy, cryptoStrategy, forexStrategy, "BAAM"
         )
     }
 
@@ -74,6 +74,7 @@ class PredictionApplicationServiceTest {
     @Test
     fun `sendPredictions uses forex strategy for forex instruments`() {
         PredictionApplicationService.INSTRUMENTS.forEach { priceRepository.store(marketPrice(it)) }
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
         every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
         every { forexStrategy.predict(any(), any()) } returns Direction.DOWN
