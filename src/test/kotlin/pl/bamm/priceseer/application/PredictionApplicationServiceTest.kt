@@ -12,14 +12,14 @@ import pl.bamm.priceseer.domain.model.Direction
 import pl.bamm.priceseer.domain.model.Prediction
 import pl.bamm.priceseer.domain.port.PredictionPort
 import pl.bamm.priceseer.domain.port.PredictionStrategy
-import pl.bamm.priceseer.domain.port.PriceRepository
+import pl.bamm.priceseer.infrastructure.persistence.InMemoryPriceRepository
 import pl.bamm.priceseer.fixtures.marketPrice
 import kotlin.test.Test
 
 @ExtendWith(MockKExtension::class)
 class PredictionApplicationServiceTest {
 
-    private val priceRepository = mockk<PriceRepository>()
+    private lateinit var priceRepository: InMemoryPriceRepository
     private val predictionPort = mockk<PredictionPort>()
     private val strategy = mockk<PredictionStrategy>()
 
@@ -27,20 +27,18 @@ class PredictionApplicationServiceTest {
 
     @BeforeEach
     fun setUp() {
+        priceRepository = InMemoryPriceRepository()
         sut = PredictionApplicationService(priceRepository, predictionPort, strategy, "BAAM")
     }
 
     @Test
     fun `given price received when onPriceReceived then stores price and sends prediction`() {
         val price = marketPrice("BTC/USD")
-        every { priceRepository.store(price) } just runs
-        every { priceRepository.history("BTC/USD") } returns listOf(price)
         every { strategy.predict("BTC/USD", any()) } returns Direction.UP
         every { predictionPort.send(any()) } just runs
 
         sut.onPriceReceived(price)
 
-        verify(exactly = 1) { priceRepository.store(price) }
         verify(exactly = 1) {
             predictionPort.send(match { it.symbol == "BTC/USD" && it.direction == Direction.UP && it.team == "BAAM" })
         }
@@ -49,8 +47,6 @@ class PredictionApplicationServiceTest {
     @Test
     fun `given two prices in same minute when onPriceReceived then prediction sent only once`() {
         val price = marketPrice("BTC/USD")
-        every { priceRepository.store(any()) } just runs
-        every { priceRepository.history(any()) } returns listOf(price)
         every { strategy.predict(any(), any()) } returns Direction.UP
         every { predictionPort.send(any()) } just runs
 
@@ -64,8 +60,6 @@ class PredictionApplicationServiceTest {
     fun `given different symbols in same minute when onPriceReceived then both predictions sent`() {
         val btc = marketPrice("BTC/USD")
         val eth = marketPrice("ETH/USD")
-        every { priceRepository.store(any()) } just runs
-        every { priceRepository.history(any()) } returns listOf(btc)
         every { strategy.predict(any(), any()) } returns Direction.DOWN
         every { predictionPort.send(any()) } just runs
 
@@ -79,8 +73,6 @@ class PredictionApplicationServiceTest {
     fun `given team name when prediction created then team name is set correctly`() {
         val price = marketPrice("AAPL")
         val capturedPredictions = mutableListOf<Prediction>()
-        every { priceRepository.store(any()) } just runs
-        every { priceRepository.history(any()) } returns listOf(price)
         every { strategy.predict(any(), any()) } returns Direction.UP
         every { predictionPort.send(capture(capturedPredictions)) } just runs
 
