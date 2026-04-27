@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import pl.bamm.priceseer.domain.model.Direction
 import pl.bamm.priceseer.domain.model.MarketPrice
 import pl.bamm.priceseer.domain.model.Prediction
 import pl.bamm.priceseer.domain.port.PredictionPort
@@ -33,10 +34,12 @@ class PredictionApplicationService(
 
         INSTRUMENTS.forEach { symbol ->
             val history = priceRepository.history(symbol)
-            if (history.isEmpty()) return@forEach
-
-            val strategy = strategyFor(symbol)
-            val direction = strategy.predict(symbol, history)
+            val direction = if (history.isEmpty()) {
+                log.info("No price data for symbol={}, defaulting to UP", symbol)
+                Direction.UP
+            } else {
+                strategyFor(symbol).predict(symbol, history)
+            }
             val prediction = Prediction(
                 team = teamName,
                 symbol = symbol,
