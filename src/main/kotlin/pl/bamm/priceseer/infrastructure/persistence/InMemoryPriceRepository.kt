@@ -31,6 +31,6 @@ class InMemoryPriceRepository : PriceRepository {
     }
 
     companion object {
-        private const val HISTORY_SIZE = 20
+        private const val HISTORY_SIZE = 120
     }
 }
