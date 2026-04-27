@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: baam-postgres
+    environment:
+      POSTGRES_DB: priceseer
+      POSTGRES_USER: priceseer
+      POSTGRES_PASSWORD: priceseer
+    ports:
+      - "15432:5432"
+    volumes:
+      - baam-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U priceseer -d priceseer"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  baam-pgdata:

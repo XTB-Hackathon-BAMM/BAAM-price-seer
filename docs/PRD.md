@@ -190,9 +190,111 @@ own `/actuator/health` endpoint showing Oracle connectivity.
 
 ---
 
+---
+
+## Feature 5 — Persistent Storage (PostgreSQL)
+
+### Summary
+
+Replace the in-memory `InMemoryPriceRepository` with a PostgreSQL-backed repository so that
+price history and sent-prediction state survive application restarts. This allows the app to
+resume scoring immediately after a crash or redeploy without losing the 100-minute candle window.
+
+### Infrastructure
+
+Local PostgreSQL instance via Docker Compose (port `15432` to avoid conflicts):
+
+```bash
+docker compose up -d          # start
+docker compose down           # stop
+docker compose down -v        # stop + wipe data
+```
+
+Connection string (local dev): `jdbc:postgresql://localhost:15432/priceseer`
+
+### Database Schema
+
+Two tables managed via Flyway migrations:
+
+```sql
+-- stores received OHLC candles, one row per symbol + timestamp
+CREATE TABLE market_price (
+    id          BIGSERIAL PRIMARY KEY,
+    symbol      VARCHAR(20)      NOT NULL,
+    ts          TIMESTAMPTZ      NOT NULL,
+    interval    VARCHAR(10)      NOT NULL,
+    open        DOUBLE PRECISION NOT NULL,
+    high        DOUBLE PRECISION NOT NULL,
+    low         DOUBLE PRECISION NOT NULL,
+    close       DOUBLE PRECISION NOT NULL,
+    received_at TIMESTAMPTZ      NOT NULL DEFAULT now(),
+    UNIQUE (symbol, ts)
+);
+
+CREATE INDEX ON market_price (symbol, ts DESC);
+
+-- tracks last prediction sent per symbol + minute (dedup guard)
+CREATE TABLE sent_prediction (
+    id        BIGSERIAL PRIMARY KEY,
+    symbol    VARCHAR(20)  NOT NULL,
+    minute    TIMESTAMPTZ  NOT NULL,
+    direction VARCHAR(10)  NOT NULL,
+    sent_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    UNIQUE (symbol, minute)
+);
+```
+
+### Acceptance Criteria
+
+- [ ] PostgreSQL datasource configured via `application.properties` (local) and Spring profile overrides (prod)
+- [ ] Flyway runs migrations on startup; schema is created automatically
+- [ ] `JdbcPriceRepository` implements `PriceRepository` port (replaces `InMemoryPriceRepository`)
+  - `store(price)` upserts into `market_price` (conflict on `symbol, ts` → ignore)
+  - `history(symbol)` returns last N candles ordered by `ts DESC` (N from `app.history-size`)
+  - `latest(symbol)` returns the single most-recent candle
+- [ ] `JdbcSentPredictionRepository` replaces the `ConcurrentHashMap` dedup in `PredictionApplicationService`
+  - `tryMarkSent(symbol, minute)` inserts into `sent_prediction`; returns `true` if inserted, `false` on duplicate
+- [ ] `PredictionApplicationService` uses the new dedup repository — no in-memory map
+- [ ] Integration tests use Testcontainers `PostgreSQLContainer` (not the local Docker Compose instance)
+- [ ] Health check (`/actuator/health`) includes datasource liveness
+
+### Configuration
+
+```properties
+# application.properties (local dev)
+spring.datasource.url=jdbc:postgresql://localhost:15432/priceseer
+spring.datasource.username=priceseer
+spring.datasource.password=priceseer
+spring.flyway.enabled=true
+spring.flyway.locations=classpath:db/migration
+app.history-size=120
+```
+
+### Implementation Notes
+
+- Use `spring-boot-starter-jdbc` + plain `JdbcTemplate` — no JPA/Hibernate overhead.
+- `UNIQUE (symbol, ts)` + `INSERT ... ON CONFLICT DO NOTHING` makes `store` idempotent.
+- `tryMarkSent` uses `INSERT ... ON CONFLICT DO NOTHING` and checks `UPDATE COUNT == 1`.
+- Keep `InMemoryPriceRepository` as a `@Profile("test")` fallback so unit tests don't need a DB.
+- Testcontainers `@ServiceConnection` auto-wires the datasource URL in integration tests.
+
+### Source Layout (additions)
+
+```
+infrastructure/
+  persistence/
+    JdbcPriceRepository.kt          — implements PriceRepository
+    JdbcSentPredictionRepository.kt — implements new SentPredictionRepository port
+src/main/resources/
+  db/migration/
+    V1__create_market_price.sql
+    V2__create_sent_prediction.sql
+```
+
+---
+
 ## Out of Scope (for now)
 
-- Persistent storage (DB, Redis) — in-memory is sufficient for 100-minute window
 - Multiple consumer instances / partitioning
 - ML-based prediction models (future feature)
 - Frontend / dashboard (stretch goal)
