@@ -27,7 +27,7 @@ dependencies {
 	implementation 'tools.jackson.module:jackson-module-kotlin'
 	implementation 'com.google.protobuf:protobuf-java:4.30.2'
 	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
-	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.springframework.boot:spring-boot-starter-flyway'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	runtimeOnly 'org.postgresql:postgresql'
 	compileOnly 'org.projectlombok:lombok'

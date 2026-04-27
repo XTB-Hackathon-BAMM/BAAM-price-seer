@@ -1,11 +1,13 @@
 package pl.bamm.priceseer.infrastructure.persistence
 
+import org.springframework.context.annotation.Profile
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import pl.bamm.priceseer.domain.model.Direction
 import pl.bamm.priceseer.domain.port.SentPredictionRepository
 import java.time.Instant
 
+@Profile("!in-memory")
 @Repository
 class JdbcSentPredictionRepository(private val jdbc: JdbcTemplate) : SentPredictionRepository {
 

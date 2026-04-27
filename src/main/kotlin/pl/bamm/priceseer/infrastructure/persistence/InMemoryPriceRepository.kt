@@ -6,7 +6,7 @@ import pl.bamm.priceseer.domain.model.MarketPrice
 import pl.bamm.priceseer.domain.port.PriceRepository
 import java.util.concurrent.ConcurrentHashMap
 
-@Profile("test")
+@Profile("in-memory")
 @Component
 class InMemoryPriceRepository : PriceRepository {
 
