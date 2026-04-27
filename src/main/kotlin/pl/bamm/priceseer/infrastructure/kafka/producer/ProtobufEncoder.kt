@@ -1,19 +1,22 @@
 package pl.bamm.priceseer.infrastructure.kafka.producer
 
-import com.google.protobuf.CodedOutputStream
+import com.xtb.adapter.outgoing.protobuf.PredictionProto
+import pl.bamm.priceseer.domain.model.Direction
 import pl.bamm.priceseer.domain.model.Prediction
-import java.io.ByteArrayOutputStream
 
 object ProtobufEncoder {
 
-    fun encode(prediction: Prediction): ByteArray {
-        val out = ByteArrayOutputStream()
-        val coded = CodedOutputStream.newInstance(out)
-        coded.writeString(1, prediction.team)
-        coded.writeString(2, prediction.symbol)
-        coded.writeString(3, prediction.timestamp)
-        coded.writeEnum(4, prediction.direction.ordinal)
-        coded.flush()
-        return out.toByteArray()
+    fun encode(prediction: Prediction): ByteArray =
+        PredictionProto.Prediction.newBuilder()
+            .setTeam(prediction.team)
+            .setSymbol(prediction.symbol)
+            .setTimestamp(prediction.timestamp)
+            .setPrediction(prediction.direction.toProto())
+            .build()
+            .toByteArray()
+
+    private fun Direction.toProto(): PredictionProto.Direction = when (this) {
+        Direction.UP -> PredictionProto.Direction.UP
+        Direction.DOWN -> PredictionProto.Direction.DOWN
     }
 }

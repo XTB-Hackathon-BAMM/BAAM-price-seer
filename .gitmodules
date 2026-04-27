@@ -1,0 +1,3 @@
+[submodule "proto"]
+	path = proto
+	url = git@git.corp.xtb.com:xserver-team/warsztaty/oracle-proto.git
