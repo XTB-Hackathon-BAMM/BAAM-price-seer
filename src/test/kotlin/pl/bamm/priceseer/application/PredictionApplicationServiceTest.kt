@@ -58,43 +58,39 @@ class PredictionApplicationServiceTest {
 
     @Test
     fun `sendPredictions uses crypto strategy for BTC and ETH`() {
-        priceRepository.store(marketPrice("BTC/USD"))
-        priceRepository.store(marketPrice("ETH/USD"))
-        every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
-        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
-        every { predictionPort.send(any()) } just runs
-
-        sut.sendPredictions()
-
-        verify(exactly = 2) { cryptoStrategy.predict(any(), any()) }
-        verify(exactly = 0) { defaultStrategy.predict(any(), any()) }
-    }
-
-    @Test
-    fun `sendPredictions uses default strategy for non-crypto instruments`() {
-        priceRepository.store(marketPrice("AAPL"))
-        priceRepository.store(marketPrice("MSFT"))
+        PredictionApplicationService.INSTRUMENTS.forEach { priceRepository.store(marketPrice(it)) }
+        every { cryptoStrategy.predict(any(), any()) } returns Direction.DOWN
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
         every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(any()) } just runs
 
         sut.sendPredictions()
 
-        verify(exactly = 2) { defaultStrategy.predict(any(), any()) }
-        verify(exactly = 0) { cryptoStrategy.predict(any(), any()) }
+        verify(exactly = 2) { cryptoStrategy.predict(any(), any()) }
     }
 
     @Test
-    fun `sendPredictions skips instruments with no price data`() {
-        priceRepository.store(marketPrice("AAPL"))
-        every { defaultStrategy.predict(any(), any()) } returns Direction.DOWN
+    fun `sendPredictions uses default strategy for non-crypto instruments`() {
+        PredictionApplicationService.INSTRUMENTS.forEach { priceRepository.store(marketPrice(it)) }
+        every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
         every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(any()) } just runs
 
         sut.sendPredictions()
 
-        verify(exactly = 1) { predictionPort.send(any()) }
-        verify { predictionPort.send(match { it.symbol == "AAPL" }) }
+        verify(exactly = 6) { defaultStrategy.predict(any(), any()) }
+    }
+
+    @Test
+    fun `sendPredictions defaults to UP for instruments with no price data`() {
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
+        every { predictionPort.send(any()) } just runs
+
+        sut.sendPredictions()
+
+        verify(exactly = 8) { predictionPort.send(any()) }
+        verify(exactly = 8) { predictionPort.send(match { it.direction == Direction.UP }) }
     }
 
     @Test
