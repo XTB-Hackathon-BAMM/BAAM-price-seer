@@ -12,87 +12,127 @@ import pl.bamm.priceseer.domain.model.Direction
 import pl.bamm.priceseer.domain.model.Prediction
 import pl.bamm.priceseer.domain.port.PredictionPort
 import pl.bamm.priceseer.domain.port.PredictionStrategy
-import pl.bamm.priceseer.domain.port.PriceRepository
 import pl.bamm.priceseer.domain.port.SentPredictionRepository
+import pl.bamm.priceseer.infrastructure.persistence.InMemoryPriceRepository
 import pl.bamm.priceseer.fixtures.marketPrice
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 @ExtendWith(MockKExtension::class)
 class PredictionApplicationServiceTest {
 
-    private val priceRepository = mockk<PriceRepository>()
+    private lateinit var priceRepository: InMemoryPriceRepository
     private val predictionPort = mockk<PredictionPort>()
     private val sentPredictionRepository = mockk<SentPredictionRepository>()
-    private val strategy = mockk<PredictionStrategy>()
+    private val defaultStrategy = mockk<PredictionStrategy>()
+    private val cryptoStrategy = mockk<PredictionStrategy>()
 
     private lateinit var sut: PredictionApplicationService
 
     @BeforeEach
     fun setUp() {
-        sut = PredictionApplicationService(priceRepository, predictionPort, sentPredictionRepository, strategy, "BAAM")
+        priceRepository = InMemoryPriceRepository()
+        sut = PredictionApplicationService(
+            priceRepository, predictionPort, sentPredictionRepository,
+            defaultStrategy, cryptoStrategy, "BAAM"
+        )
     }
 
     @Test
-    fun `given price received when onPriceReceived then stores price and sends prediction`() {
+    fun `onPriceReceived stores price in repository`() {
         val price = marketPrice("BTC/USD")
-        every { priceRepository.store(price) } just runs
-        every { priceRepository.history("BTC/USD") } returns listOf(price)
-        every { strategy.predict("BTC/USD", any()) } returns Direction.UP
+
+        sut.onPriceReceived(price)
+
+        assertEquals(listOf(price), priceRepository.history("BTC/USD"))
+    }
+
+    @Test
+    fun `onPriceReceived does not send prediction`() {
+        val price = marketPrice("BTC/USD")
+
+        sut.onPriceReceived(price)
+
+        verify(exactly = 0) { predictionPort.send(any()) }
+    }
+
+    @Test
+    fun `sendPredictions uses crypto strategy for BTC and ETH`() {
+        priceRepository.store(marketPrice("BTC/USD"))
+        priceRepository.store(marketPrice("ETH/USD"))
+        every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
         every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(any()) } just runs
 
-        sut.onPriceReceived(price)
+        sut.sendPredictions()
 
-        verify(exactly = 1) { priceRepository.store(price) }
-        verify(exactly = 1) {
-            predictionPort.send(match { it.symbol == "BTC/USD" && it.direction == Direction.UP && it.team == "BAAM" })
-        }
+        verify(exactly = 2) { cryptoStrategy.predict(any(), any()) }
+        verify(exactly = 0) { defaultStrategy.predict(any(), any()) }
     }
 
     @Test
-    fun `given two prices in same minute when onPriceReceived then prediction sent only once`() {
-        val price = marketPrice("BTC/USD")
-        every { priceRepository.store(any()) } just runs
-        every { priceRepository.history(any()) } returns listOf(price)
-        every { strategy.predict(any(), any()) } returns Direction.UP
-        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returnsMany listOf(true, false)
+    fun `sendPredictions uses default strategy for non-crypto instruments`() {
+        priceRepository.store(marketPrice("AAPL"))
+        priceRepository.store(marketPrice("MSFT"))
+        every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(any()) } just runs
 
-        sut.onPriceReceived(price)
-        sut.onPriceReceived(price)
+        sut.sendPredictions()
+
+        verify(exactly = 2) { defaultStrategy.predict(any(), any()) }
+        verify(exactly = 0) { cryptoStrategy.predict(any(), any()) }
+    }
+
+    @Test
+    fun `sendPredictions skips instruments with no price data`() {
+        priceRepository.store(marketPrice("AAPL"))
+        every { defaultStrategy.predict(any(), any()) } returns Direction.DOWN
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
+        every { predictionPort.send(any()) } just runs
+
+        sut.sendPredictions()
 
         verify(exactly = 1) { predictionPort.send(any()) }
+        verify { predictionPort.send(match { it.symbol == "AAPL" }) }
     }
 
     @Test
-    fun `given different symbols in same minute when onPriceReceived then both predictions sent`() {
-        val btc = marketPrice("BTC/USD")
-        val eth = marketPrice("ETH/USD")
-        every { priceRepository.store(any()) } just runs
-        every { priceRepository.history(any()) } returns listOf(btc)
-        every { strategy.predict(any(), any()) } returns Direction.DOWN
-        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
-        every { predictionPort.send(any()) } just runs
-
-        sut.onPriceReceived(btc)
-        sut.onPriceReceived(eth)
-
-        verify(exactly = 2) { predictionPort.send(any()) }
-    }
-
-    @Test
-    fun `given team name when prediction created then team name is set correctly`() {
-        val price = marketPrice("AAPL")
+    fun `sendPredictions sets team name correctly`() {
+        priceRepository.store(marketPrice("AAPL"))
         val capturedPredictions = mutableListOf<Prediction>()
-        every { priceRepository.store(any()) } just runs
-        every { priceRepository.history(any()) } returns listOf(price)
-        every { strategy.predict(any(), any()) } returns Direction.UP
+        every { defaultStrategy.predict(any(), any()) } returns Direction.UP
         every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(capture(capturedPredictions)) } just runs
 
-        sut.onPriceReceived(price)
+        sut.sendPredictions()
 
-        verify(exactly = 1) { predictionPort.send(any()) }
-        assert(capturedPredictions.first().team == "BAAM")
+        assertEquals("BAAM", capturedPredictions.first().team)
+    }
+
+    @Test
+    fun `sendPredictions sends predictions for all 8 instruments when all have data`() {
+        PredictionApplicationService.INSTRUMENTS.forEach { symbol ->
+            priceRepository.store(marketPrice(symbol))
+        }
+        every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
+        every { predictionPort.send(any()) } just runs
+
+        sut.sendPredictions()
+
+        verify(exactly = 8) { predictionPort.send(any()) }
+    }
+
+    @Test
+    fun `sendPredictions skips already sent predictions for same minute`() {
+        priceRepository.store(marketPrice("AAPL"))
+        every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns false
+
+        sut.sendPredictions()
+
+        verify(exactly = 0) { predictionPort.send(any()) }
     }
 }

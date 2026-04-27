@@ -55,7 +55,8 @@ kotlin {
 
 protobuf {
 	protoc {
-		path = '/usr/bin/protoc'
+		// Downloads the compiler automatically for your OS/Arch
+		artifact = 'com.google.protobuf:protoc:3.25.1'
 	}
 	generateProtoTasks {
 		all().each { task ->

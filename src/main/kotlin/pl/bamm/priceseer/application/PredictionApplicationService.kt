@@ -18,31 +18,52 @@ class PredictionApplicationService(
     private val priceRepository: PriceRepository,
     private val predictionPort: PredictionPort,
     private val sentPredictionRepository: SentPredictionRepository,
-    @Qualifier("momentum") private val strategy: PredictionStrategy,
+    @Qualifier("momentum") private val defaultStrategy: PredictionStrategy,
+    @Qualifier("crypto") private val cryptoStrategy: PredictionStrategy,
     @Value("\${app.team-name}") private val teamName: String,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun onPriceReceived(price: MarketPrice) {
         priceRepository.store(price)
+        log.info("Stored price: symbol={} close={} ts={}", price.symbol, price.close, price.timestamp)
+    }
 
+    fun sendPredictions() {
         val currentMinute = Instant.now().truncatedTo(ChronoUnit.MINUTES)
-        val history = priceRepository.history(price.symbol)
-        val direction = strategy.predict(price.symbol, history)
+        log.info("Sending predictions for minute={}", currentMinute)
 
-        val sent = sentPredictionRepository.tryMarkSent(price.symbol, currentMinute, direction)
-        if (!sent) {
-            log.debug("Skipping duplicate for symbol={} minute={}", price.symbol, currentMinute)
-            return
+        INSTRUMENTS.forEach { symbol ->
+            val history = priceRepository.history(symbol)
+            if (history.isEmpty()) return@forEach
+
+            val strategy = strategyFor(symbol)
+            val direction = strategy.predict(symbol, history)
+
+            if (!sentPredictionRepository.tryMarkSent(symbol, currentMinute, direction)) {
+                log.debug("Skipping duplicate for symbol={} minute={}", symbol, currentMinute)
+                return@forEach
+            }
+
+            val prediction = Prediction(
+                team = teamName,
+                symbol = symbol,
+                timestamp = currentMinute.toString(),
+                direction = direction,
+            )
+            predictionPort.send(prediction)
+            log.info("Sent prediction: symbol={} direction={} minute={}", symbol, direction, currentMinute)
         }
+    }
 
-        val prediction = Prediction(
-            team = teamName,
-            symbol = price.symbol,
-            timestamp = currentMinute.toString(),
-            direction = direction,
+    private fun strategyFor(symbol: String): PredictionStrategy =
+        if (symbol in CRYPTO_INSTRUMENTS) cryptoStrategy else defaultStrategy
+
+    companion object {
+        val INSTRUMENTS = listOf(
+            "AAPL", "MSFT", "EUR/USD", "GBP/JPY",
+            "BTC/USD", "ETH/USD", "XAU/USD", "USD/JPY",
         )
-        predictionPort.send(prediction)
-        log.info("Sent prediction: symbol={} direction={} minute={}", price.symbol, direction, currentMinute)
+        private val CRYPTO_INSTRUMENTS = setOf("BTC/USD", "ETH/USD")
     }
 }

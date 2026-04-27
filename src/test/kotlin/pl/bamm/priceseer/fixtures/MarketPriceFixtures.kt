@@ -7,14 +7,16 @@ fun marketPrice(
     symbol: String = "BTC/USD",
     open: Double = 50_000.0,
     close: Double = 51_000.0,
+    high: Double? = null,
+    low: Double? = null,
     timestamp: String = "2026-04-27T12:05:00Z",
 ): MarketPrice = MarketPrice(
     symbol = symbol,
     timestamp = timestamp,
     interval = "1min",
     open = open,
-    high = maxOf(open, close),
-    low = minOf(open, close),
+    high = high ?: maxOf(open, close),
+    low = low ?: minOf(open, close),
     close = close,
 )
 

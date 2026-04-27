@@ -9,7 +9,6 @@ import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import pl.bamm.priceseer.application.PredictionApplicationService
-import pl.bamm.priceseer.domain.model.MarketPrice
 import pl.bamm.priceseer.fixtures.TestKafka
 import pl.bamm.priceseer.fixtures.marketPriceBytes
 
