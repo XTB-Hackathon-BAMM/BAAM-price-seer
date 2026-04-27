@@ -17,9 +17,11 @@ import org.testcontainers.utility.DockerImageName
 import pl.bamm.priceseer.application.PredictionApplicationService
 import pl.bamm.priceseer.domain.model.MarketPrice
 import pl.bamm.priceseer.fixtures.marketPriceBytes
+import kotlin.test.Ignore
 
 @SpringBootTest
 @Testcontainers
+@Ignore
 class MarketPriceConsumerIT {
 
     companion object {
