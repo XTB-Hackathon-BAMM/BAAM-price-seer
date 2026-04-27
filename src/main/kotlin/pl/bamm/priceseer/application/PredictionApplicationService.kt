@@ -16,7 +16,8 @@ import java.time.temporal.ChronoUnit
 class PredictionApplicationService(
     private val priceRepository: PriceRepository,
     private val predictionPort: PredictionPort,
-    @Qualifier("momentum") private val strategy: PredictionStrategy,
+    @Qualifier("momentum") private val defaultStrategy: PredictionStrategy,
+    @Qualifier("crypto") private val cryptoStrategy: PredictionStrategy,
     @Value("\${app.team-name}") private val teamName: String,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -34,6 +35,7 @@ class PredictionApplicationService(
             val history = priceRepository.history(symbol)
             if (history.isEmpty()) return@forEach
 
+            val strategy = strategyFor(symbol)
             val direction = strategy.predict(symbol, history)
             val prediction = Prediction(
                 team = teamName,
@@ -46,6 +48,9 @@ class PredictionApplicationService(
         }
     }
 
+    private fun strategyFor(symbol: String): PredictionStrategy =
+        if (symbol in CRYPTO_INSTRUMENTS) cryptoStrategy else defaultStrategy
+
     private fun currentUtcMinute(): String =
         Instant.now().truncatedTo(ChronoUnit.MINUTES).toString()
 
@@ -54,5 +59,6 @@ class PredictionApplicationService(
             "AAPL", "MSFT", "EUR/USD", "GBP/JPY",
             "BTC/USD", "ETH/USD", "XAU/USD", "USD/JPY",
         )
+        private val CRYPTO_INSTRUMENTS = setOf("BTC/USD", "ETH/USD")
     }
 }
