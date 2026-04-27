@@ -24,13 +24,16 @@ class PredictionApplicationServiceTest {
     private val predictionPort = mockk<PredictionPort>()
     private val defaultStrategy = mockk<PredictionStrategy>()
     private val cryptoStrategy = mockk<PredictionStrategy>()
+    private val forexStrategy = mockk<PredictionStrategy>()
 
     private lateinit var sut: PredictionApplicationService
 
     @BeforeEach
     fun setUp() {
         priceRepository = InMemoryPriceRepository()
-        sut = PredictionApplicationService(priceRepository, predictionPort, defaultStrategy, cryptoStrategy, "BAAM")
+        sut = PredictionApplicationService(
+            priceRepository, predictionPort, defaultStrategy, cryptoStrategy, forexStrategy, "BAAM",
+        )
     }
 
     @Test
@@ -56,6 +59,7 @@ class PredictionApplicationServiceTest {
         PredictionApplicationService.INSTRUMENTS.forEach { priceRepository.store(marketPrice(it)) }
         every { cryptoStrategy.predict(any(), any()) } returns Direction.DOWN
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { forexStrategy.predict(any(), any()) } returns Direction.UP
         every { predictionPort.send(any()) } just runs
 
         sut.sendPredictions()
@@ -64,15 +68,30 @@ class PredictionApplicationServiceTest {
     }
 
     @Test
-    fun `sendPredictions uses default strategy for non-crypto instruments`() {
+    fun `sendPredictions uses forex strategy for forex instruments`() {
         PredictionApplicationService.INSTRUMENTS.forEach { priceRepository.store(marketPrice(it)) }
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
         every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
+        every { forexStrategy.predict(any(), any()) } returns Direction.DOWN
         every { predictionPort.send(any()) } just runs
 
         sut.sendPredictions()
 
-        verify(exactly = 6) { defaultStrategy.predict(any(), any()) }
+        verify(exactly = 3) { forexStrategy.predict(any(), any()) }
+    }
+
+    @Test
+    fun `sendPredictions uses default strategy for non-crypto non-forex instruments`() {
+        PredictionApplicationService.INSTRUMENTS.forEach { priceRepository.store(marketPrice(it)) }
+        every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
+        every { forexStrategy.predict(any(), any()) } returns Direction.UP
+        every { predictionPort.send(any()) } just runs
+
+        sut.sendPredictions()
+
+        // 8 total - 2 crypto - 3 forex = 3 default (AAPL, MSFT, XAU/USD)
+        verify(exactly = 3) { defaultStrategy.predict(any(), any()) }
     }
 
     @Test
@@ -104,6 +123,7 @@ class PredictionApplicationServiceTest {
         }
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
         every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
+        every { forexStrategy.predict(any(), any()) } returns Direction.UP
         every { predictionPort.send(any()) } just runs
 
         sut.sendPredictions()

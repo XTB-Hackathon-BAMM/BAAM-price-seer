@@ -19,6 +19,7 @@ class PredictionApplicationService(
     private val predictionPort: PredictionPort,
     @Qualifier("momentum") private val defaultStrategy: PredictionStrategy,
     @Qualifier("crypto") private val cryptoStrategy: PredictionStrategy,
+    @Qualifier("forex") private val forexStrategy: PredictionStrategy,
     @Value("\${app.team-name}") private val teamName: String,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -51,8 +52,11 @@ class PredictionApplicationService(
         }
     }
 
-    private fun strategyFor(symbol: String): PredictionStrategy =
-        if (symbol in CRYPTO_INSTRUMENTS) cryptoStrategy else defaultStrategy
+    private fun strategyFor(symbol: String): PredictionStrategy = when (symbol) {
+        in CRYPTO_INSTRUMENTS -> cryptoStrategy
+        in FOREX_INSTRUMENTS -> forexStrategy
+        else -> defaultStrategy
+    }
 
     private fun currentUtcMinute(): String =
         Instant.now().truncatedTo(ChronoUnit.MINUTES).toString()
@@ -63,5 +67,6 @@ class PredictionApplicationService(
             "BTC/USD", "ETH/USD", "XAU/USD", "USD/JPY",
         )
         private val CRYPTO_INSTRUMENTS = setOf("BTC/USD", "ETH/USD")
+        private val FOREX_INSTRUMENTS = setOf("EUR/USD", "GBP/JPY", "USD/JPY")
     }
 }
