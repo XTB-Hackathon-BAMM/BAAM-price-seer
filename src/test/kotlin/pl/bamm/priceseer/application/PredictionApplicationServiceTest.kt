@@ -13,6 +13,7 @@ import pl.bamm.priceseer.domain.model.Prediction
 import pl.bamm.priceseer.domain.port.PredictionPort
 import pl.bamm.priceseer.domain.port.PredictionStrategy
 import pl.bamm.priceseer.domain.port.PriceRepository
+import pl.bamm.priceseer.domain.port.SentPredictionRepository
 import pl.bamm.priceseer.fixtures.marketPrice
 import kotlin.test.Test
 
@@ -21,13 +22,14 @@ class PredictionApplicationServiceTest {
 
     private val priceRepository = mockk<PriceRepository>()
     private val predictionPort = mockk<PredictionPort>()
+    private val sentPredictionRepository = mockk<SentPredictionRepository>()
     private val strategy = mockk<PredictionStrategy>()
 
     private lateinit var sut: PredictionApplicationService
 
     @BeforeEach
     fun setUp() {
-        sut = PredictionApplicationService(priceRepository, predictionPort, strategy, "BAAM")
+        sut = PredictionApplicationService(priceRepository, predictionPort, sentPredictionRepository, strategy, "BAAM")
     }
 
     @Test
@@ -36,6 +38,7 @@ class PredictionApplicationServiceTest {
         every { priceRepository.store(price) } just runs
         every { priceRepository.history("BTC/USD") } returns listOf(price)
         every { strategy.predict("BTC/USD", any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(any()) } just runs
 
         sut.onPriceReceived(price)
@@ -52,6 +55,7 @@ class PredictionApplicationServiceTest {
         every { priceRepository.store(any()) } just runs
         every { priceRepository.history(any()) } returns listOf(price)
         every { strategy.predict(any(), any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returnsMany listOf(true, false)
         every { predictionPort.send(any()) } just runs
 
         sut.onPriceReceived(price)
@@ -67,6 +71,7 @@ class PredictionApplicationServiceTest {
         every { priceRepository.store(any()) } just runs
         every { priceRepository.history(any()) } returns listOf(btc)
         every { strategy.predict(any(), any()) } returns Direction.DOWN
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(any()) } just runs
 
         sut.onPriceReceived(btc)
@@ -82,6 +87,7 @@ class PredictionApplicationServiceTest {
         every { priceRepository.store(any()) } just runs
         every { priceRepository.history(any()) } returns listOf(price)
         every { strategy.predict(any(), any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(capture(capturedPredictions)) } just runs
 
         sut.onPriceReceived(price)

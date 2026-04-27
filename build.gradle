@@ -26,6 +26,10 @@ dependencies {
 	implementation 'org.jetbrains.kotlin:kotlin-reflect'
 	implementation 'tools.jackson.module:jackson-module-kotlin'
 	implementation 'com.google.protobuf:protobuf-java:4.30.2'
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-database-postgresql'
+	runtimeOnly 'org.postgresql:postgresql'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
@@ -33,6 +37,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.springframework.kafka:spring-kafka-test'
 	testImplementation 'org.testcontainers:kafka:1.20.6'
+	testImplementation 'org.testcontainers:postgresql:1.20.6'
 	testImplementation 'org.testcontainers:junit-jupiter:1.20.6'
 	testImplementation 'io.mockk:mockk:1.14.0'
 	testImplementation 'com.ninja-squad:springmockk:4.0.2'
@@ -71,4 +76,5 @@ sourceSets {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	environment 'TESTCONTAINERS_RYUK_DISABLED', 'true'
 }

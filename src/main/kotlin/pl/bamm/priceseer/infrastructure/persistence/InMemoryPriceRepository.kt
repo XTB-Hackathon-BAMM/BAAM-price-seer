@@ -1,10 +1,12 @@
 package pl.bamm.priceseer.infrastructure.persistence
 
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import pl.bamm.priceseer.domain.model.MarketPrice
 import pl.bamm.priceseer.domain.port.PriceRepository
 import java.util.concurrent.ConcurrentHashMap
 
+@Profile("test")
 @Component
 class InMemoryPriceRepository : PriceRepository {
 
