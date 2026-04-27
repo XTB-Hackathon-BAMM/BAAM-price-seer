@@ -22,6 +22,7 @@ class PredictionApplicationService(
     @Qualifier("momentum") private val defaultStrategy: PredictionStrategy,
     @Qualifier("crypto") private val cryptoStrategy: PredictionStrategy,
     @Qualifier("forex") private val forexStrategy: PredictionStrategy,
+    @Qualifier("gold") private val goldStrategy: PredictionStrategy,
     @Value("\${app.team-name}") private val teamName: String,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -63,6 +64,7 @@ class PredictionApplicationService(
     private fun strategyFor(symbol: String): PredictionStrategy = when (symbol) {
         in CRYPTO_INSTRUMENTS -> cryptoStrategy
         in FOREX_INSTRUMENTS -> forexStrategy
+        "XAU/USD" -> goldStrategy
         else -> defaultStrategy
     }
 
