@@ -15,6 +15,7 @@ import pl.bamm.priceseer.domain.port.PredictionStrategy
 import pl.bamm.priceseer.infrastructure.persistence.InMemoryPriceRepository
 import pl.bamm.priceseer.fixtures.marketPrice
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 @ExtendWith(MockKExtension::class)
 class PredictionApplicationServiceTest {
@@ -32,53 +33,73 @@ class PredictionApplicationServiceTest {
     }
 
     @Test
-    fun `given price received when onPriceReceived then stores price and sends prediction`() {
+    fun `onPriceReceived stores price in repository`() {
         val price = marketPrice("BTC/USD")
-        every { strategy.predict("BTC/USD", any()) } returns Direction.UP
-        every { predictionPort.send(any()) } just runs
 
         sut.onPriceReceived(price)
 
-        verify(exactly = 1) {
-            predictionPort.send(match { it.symbol == "BTC/USD" && it.direction == Direction.UP && it.team == "BAAM" })
-        }
+        assertEquals(listOf(price), priceRepository.history("BTC/USD"))
     }
 
     @Test
-    fun `given two prices in same minute when onPriceReceived then prediction sent only once`() {
+    fun `onPriceReceived does not send prediction`() {
         val price = marketPrice("BTC/USD")
+
+        sut.onPriceReceived(price)
+
+        verify(exactly = 0) { predictionPort.send(any()) }
+    }
+
+    @Test
+    fun `sendPredictions sends prediction for instruments with stored prices`() {
+        val btcPrice = marketPrice("BTC/USD")
+        val ethPrice = marketPrice("ETH/USD")
+        priceRepository.store(btcPrice)
+        priceRepository.store(ethPrice)
         every { strategy.predict(any(), any()) } returns Direction.UP
         every { predictionPort.send(any()) } just runs
 
-        sut.onPriceReceived(price)
-        sut.onPriceReceived(price)
+        sut.sendPredictions()
 
-        verify(exactly = 1) { predictionPort.send(any()) }
+        verify(exactly = 2) { predictionPort.send(any()) }
+        verify { predictionPort.send(match { it.symbol == "BTC/USD" && it.direction == Direction.UP }) }
+        verify { predictionPort.send(match { it.symbol == "ETH/USD" && it.direction == Direction.UP }) }
     }
 
     @Test
-    fun `given different symbols in same minute when onPriceReceived then both predictions sent`() {
-        val btc = marketPrice("BTC/USD")
-        val eth = marketPrice("ETH/USD")
+    fun `sendPredictions skips instruments with no price data`() {
+        priceRepository.store(marketPrice("AAPL"))
         every { strategy.predict(any(), any()) } returns Direction.DOWN
         every { predictionPort.send(any()) } just runs
 
-        sut.onPriceReceived(btc)
-        sut.onPriceReceived(eth)
+        sut.sendPredictions()
 
-        verify(exactly = 2) { predictionPort.send(any()) }
+        verify(exactly = 1) { predictionPort.send(any()) }
+        verify { predictionPort.send(match { it.symbol == "AAPL" }) }
     }
 
     @Test
-    fun `given team name when prediction created then team name is set correctly`() {
-        val price = marketPrice("AAPL")
+    fun `sendPredictions sets team name correctly`() {
+        priceRepository.store(marketPrice("AAPL"))
         val capturedPredictions = mutableListOf<Prediction>()
         every { strategy.predict(any(), any()) } returns Direction.UP
         every { predictionPort.send(capture(capturedPredictions)) } just runs
 
-        sut.onPriceReceived(price)
+        sut.sendPredictions()
 
-        verify(exactly = 1) { predictionPort.send(any()) }
-        assert(capturedPredictions.first().team == "BAAM")
+        assertEquals("BAAM", capturedPredictions.first().team)
+    }
+
+    @Test
+    fun `sendPredictions sends predictions for all 8 instruments when all have data`() {
+        PredictionApplicationService.INSTRUMENTS.forEach { symbol ->
+            priceRepository.store(marketPrice(symbol))
+        }
+        every { strategy.predict(any(), any()) } returns Direction.UP
+        every { predictionPort.send(any()) } just runs
+
+        sut.sendPredictions()
+
+        verify(exactly = 8) { predictionPort.send(any()) }
     }
 }

@@ -11,7 +11,6 @@ import pl.bamm.priceseer.domain.port.PredictionStrategy
 import pl.bamm.priceseer.domain.port.PriceRepository
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class PredictionApplicationService(
@@ -21,31 +20,39 @@ class PredictionApplicationService(
     @Value("\${app.team-name}") private val teamName: String,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val lastSentMinute = ConcurrentHashMap<String, String>()
 
     fun onPriceReceived(price: MarketPrice) {
         priceRepository.store(price)
+        log.info("Stored price: symbol={} close={} ts={}", price.symbol, price.close, price.timestamp)
+    }
 
+    fun sendPredictions() {
         val currentMinute = currentUtcMinute()
-        if (lastSentMinute[price.symbol] == currentMinute) {
-            log.debug("Skipping duplicate for symbol={} minute={}", price.symbol, currentMinute)
-            return
+        log.info("Sending predictions for minute={}", currentMinute)
+
+        INSTRUMENTS.forEach { symbol ->
+            val history = priceRepository.history(symbol)
+            if (history.isEmpty()) return@forEach
+
+            val direction = strategy.predict(symbol, history)
+            val prediction = Prediction(
+                team = teamName,
+                symbol = symbol,
+                timestamp = currentMinute,
+                direction = direction,
+            )
+            predictionPort.send(prediction)
+            log.info("Sent prediction: symbol={} direction={} minute={}", symbol, direction, currentMinute)
         }
-
-        val history = priceRepository.history(price.symbol)
-        val direction = strategy.predict(price.symbol, history)
-        val prediction = Prediction(
-            team = teamName,
-            symbol = price.symbol,
-            timestamp = currentMinute,
-            direction = direction,
-        )
-
-        predictionPort.send(prediction)
-        lastSentMinute[price.symbol] = currentMinute
-        log.info("Sent prediction: symbol={} direction={} minute={}", price.symbol, direction, currentMinute)
     }
 
     private fun currentUtcMinute(): String =
         Instant.now().truncatedTo(ChronoUnit.MINUTES).toString()
+
+    companion object {
+        val INSTRUMENTS = listOf(
+            "AAPL", "MSFT", "EUR/USD", "GBP/JPY",
+            "BTC/USD", "ETH/USD", "XAU/USD", "USD/JPY",
+        )
+    }
 }
