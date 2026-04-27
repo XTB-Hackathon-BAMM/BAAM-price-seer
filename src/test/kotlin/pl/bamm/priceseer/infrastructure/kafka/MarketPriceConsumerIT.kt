@@ -1,40 +1,33 @@
 package pl.bamm.priceseer.infrastructure.kafka
 
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.verify
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.any
-import org.mockito.Mockito.never
-import org.mockito.Mockito.timeout
-import org.mockito.Mockito.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.bean.override.mockito.MockitoBean
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.kafka.core.KafkaTemplate
-import org.testcontainers.containers.KafkaContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
-import org.testcontainers.utility.DockerImageName
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import pl.bamm.priceseer.application.PredictionApplicationService
-import pl.bamm.priceseer.domain.model.MarketPrice
+import pl.bamm.priceseer.fixtures.TestKafka
 import pl.bamm.priceseer.fixtures.marketPriceBytes
-import kotlin.test.Ignore
 
 @SpringBootTest
-@Testcontainers
-@Ignore
 class MarketPriceConsumerIT {
 
     companion object {
-        @Container
         @JvmStatic
-        @ServiceConnection
-        val kafka = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.0"))
+        @DynamicPropertySource
+        fun kafkaProperties(registry: DynamicPropertyRegistry) {
+            TestKafka  // trigger lazy init
+            registry.add("spring.kafka.bootstrap-servers") { TestKafka.bootstrapServers }
+        }
     }
 
     @Autowired
     lateinit var kafkaTemplate: KafkaTemplate<String, ByteArray>
 
-    @MockitoBean
+    @MockkBean
     lateinit var predictionApplicationService: PredictionApplicationService
 
     @Test
@@ -43,15 +36,13 @@ class MarketPriceConsumerIT {
 
         kafkaTemplate.send("market-prices", "BTC/USD", bytes).get()
 
-        verify(predictionApplicationService, timeout(10_000).times(1))
-            .onPriceReceived(any(MarketPrice::class.java))
+        verify(timeout = 10_000L, exactly = 1) { predictionApplicationService.onPriceReceived(any()) }
     }
 
     @Test
     fun `given malformed bytes when published then application service is never called`() {
         kafkaTemplate.send("market-prices", "BAD", byteArrayOf(0xFF.toByte())).get()
 
-        verify(predictionApplicationService, timeout(3_000).times(0))
-            .onPriceReceived(any(MarketPrice::class.java))
+        verify(timeout = 3_000L, exactly = 0) { predictionApplicationService.onPriceReceived(any()) }
     }
 }

@@ -12,6 +12,7 @@ import pl.bamm.priceseer.domain.model.Direction
 import pl.bamm.priceseer.domain.model.Prediction
 import pl.bamm.priceseer.domain.port.PredictionPort
 import pl.bamm.priceseer.domain.port.PredictionStrategy
+import pl.bamm.priceseer.domain.port.SentPredictionRepository
 import pl.bamm.priceseer.infrastructure.persistence.InMemoryPriceRepository
 import pl.bamm.priceseer.fixtures.marketPrice
 import kotlin.test.Test
@@ -22,6 +23,7 @@ class PredictionApplicationServiceTest {
 
     private lateinit var priceRepository: InMemoryPriceRepository
     private val predictionPort = mockk<PredictionPort>()
+    private val sentPredictionRepository = mockk<SentPredictionRepository>()
     private val defaultStrategy = mockk<PredictionStrategy>()
     private val cryptoStrategy = mockk<PredictionStrategy>()
     private val forexStrategy = mockk<PredictionStrategy>()
@@ -32,7 +34,8 @@ class PredictionApplicationServiceTest {
     fun setUp() {
         priceRepository = InMemoryPriceRepository()
         sut = PredictionApplicationService(
-            priceRepository, predictionPort, defaultStrategy, cryptoStrategy, forexStrategy, "BAAM",
+            priceRepository, predictionPort, sentPredictionRepository,
+            defaultStrategy, cryptoStrategy, "BAAM"
         )
     }
 
@@ -59,6 +62,7 @@ class PredictionApplicationServiceTest {
         PredictionApplicationService.INSTRUMENTS.forEach { priceRepository.store(marketPrice(it)) }
         every { cryptoStrategy.predict(any(), any()) } returns Direction.DOWN
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { forexStrategy.predict(any(), any()) } returns Direction.UP
         every { predictionPort.send(any()) } just runs
 
@@ -85,6 +89,7 @@ class PredictionApplicationServiceTest {
         PredictionApplicationService.INSTRUMENTS.forEach { priceRepository.store(marketPrice(it)) }
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
         every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { forexStrategy.predict(any(), any()) } returns Direction.UP
         every { predictionPort.send(any()) } just runs
 
@@ -96,6 +101,7 @@ class PredictionApplicationServiceTest {
 
     @Test
     fun `sendPredictions defaults to UP for instruments with no price data`() {
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(any()) } just runs
 
         sut.sendPredictions()
@@ -109,6 +115,7 @@ class PredictionApplicationServiceTest {
         priceRepository.store(marketPrice("AAPL"))
         val capturedPredictions = mutableListOf<Prediction>()
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(capture(capturedPredictions)) } just runs
 
         sut.sendPredictions()
@@ -123,11 +130,23 @@ class PredictionApplicationServiceTest {
         }
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
         every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { forexStrategy.predict(any(), any()) } returns Direction.UP
         every { predictionPort.send(any()) } just runs
 
         sut.sendPredictions()
 
         verify(exactly = 8) { predictionPort.send(any()) }
+    }
+
+    @Test
+    fun `sendPredictions skips already sent predictions for same minute`() {
+        priceRepository.store(marketPrice("AAPL"))
+        every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns false
+
+        sut.sendPredictions()
+
+        verify(exactly = 0) { predictionPort.send(any()) }
     }
 }
