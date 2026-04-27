@@ -70,20 +70,27 @@ class CryptoStrategyTest {
         assertEquals(Direction.UP, sut.predict("BTC/USD", history))
     }
 
-    // -- RSI (Step 2b) --
+    // -- RSI (Step 2b) — only in NORMAL regime --
 
     @Test
-    fun `given oversold RSI when predict then returns UP`() {
-        // Series of declining closes → RSI < 20
-        val history = buildDecliningHistory(periods = 15, startPrice = 100.0, dropPerCandle = 2.0)
+    fun `given oversold RSI in NORMAL regime when predict then returns UP`() {
+        val history = buildDecliningHistory(periods = 15, startPrice = 100.0, dropPerCandle = 0.15)
 
         assertEquals(Direction.UP, sut.predict("BTC/USD", history))
     }
 
     @Test
-    fun `given overbought RSI when predict then returns DOWN`() {
-        // Series of rising closes → RSI > 80
-        val history = buildRisingHistory(periods = 15, startPrice = 100.0, risePerCandle = 2.0)
+    fun `given overbought RSI in NORMAL regime when predict then returns DOWN`() {
+        val history = buildRisingHistory(periods = 15, startPrice = 100.0, risePerCandle = 0.15)
+
+        assertEquals(Direction.DOWN, sut.predict("BTC/USD", history))
+    }
+
+    @Test
+    fun `given oversold RSI in TRENDING regime when predict then follows momentum instead`() {
+        // Volatile declining history → TRENDING + RSI < 20 + bearish last candle
+        // RSI should be skipped → pure momentum → DOWN (not UP)
+        val history = buildTrendingHistory(lastOpen = 100.0, lastClose = 95.0)
 
         assertEquals(Direction.DOWN, sut.predict("BTC/USD", history))
     }
@@ -210,25 +217,22 @@ class CryptoStrategyTest {
     }
 
     private fun buildDecliningHistory(periods: Int, startPrice: Double, dropPerCandle: Double): List<MarketPrice> {
-        // Closes consistently fall (for RSI < 20) but each candle body is moderate relative to high-low range
-        // so ATR step 2a returns null → falls through to RSI step 2b
         return (0 until periods).map { i ->
             val drop = if (i % 2 == 0) dropPerCandle * 1.5 else dropPerCandle * 0.5
             val open = startPrice - i * dropPerCandle
             val close = open - drop
-            val range = drop * 3
-            marketPrice(open = open, close = close, high = open + range / 2, low = open - range / 2)
+            val range = drop * 2
+            marketPrice(open = open, close = close, high = open + range, low = open - range)
         }
     }
 
     private fun buildRisingHistory(periods: Int, startPrice: Double, risePerCandle: Double): List<MarketPrice> {
-        // Closes consistently rise (for RSI > 80) but each candle body is moderate relative to high-low range
         return (0 until periods).map { i ->
             val rise = if (i % 2 == 0) risePerCandle * 1.5 else risePerCandle * 0.5
             val open = startPrice + i * risePerCandle
             val close = open + rise
-            val range = rise * 3
-            marketPrice(open = open, close = close, high = open + range, low = open - range / 2)
+            val range = rise * 2
+            marketPrice(open = open, close = close, high = open + range, low = open - range)
         }
     }
 }

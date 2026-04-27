@@ -32,7 +32,11 @@ class CryptoStrategy(
     private fun decisionTree(history: List<MarketPrice>): Direction {
         return when (detectRegime(history)) {
             Regime.QUIET -> Direction.UP
-            Regime.TRENDING, Regime.NORMAL -> {
+            Regime.TRENDING -> {
+                atrFilteredMomentum(history)
+                    ?: pureMomentum(history.last())
+            }
+            Regime.NORMAL -> {
                 atrFilteredMomentum(history)
                     ?: rsiSignal(history)
                     ?: pureMomentum(history.last())
