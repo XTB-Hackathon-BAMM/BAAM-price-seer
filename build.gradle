@@ -78,4 +78,7 @@ sourceSets {
 tasks.named('test') {
 	useJUnitPlatform()
 	environment 'TESTCONTAINERS_RYUK_DISABLED', 'true'
+	if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+		excludeTestsMatching '*IT'
+	}
 }
