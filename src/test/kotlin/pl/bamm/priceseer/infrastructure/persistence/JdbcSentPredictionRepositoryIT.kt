@@ -18,6 +18,18 @@ class JdbcSentPredictionRepositoryIT {
         sut = JdbcSentPredictionRepository(TestDatabase.newJdbcTemplate())
     }
 
+    /**
+     * Test purpose - Verify that {@link JdbcSentPredictionRepository#tryMarkSent} returns
+     * {@code true} when no previous prediction has been recorded for the given symbol and minute
+     * in the database.
+     *
+     * <p>Test data - Symbol {@code "BTC/USD"}, timestamp {@code "2026-04-27T12:00:00Z"},
+     * direction {@code Direction.UP}, with an empty database.
+     *
+     * <p>Test expected result - {@code true}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `given no previous entry when tryMarkSent then returns true`() {
         val result = sut.tryMarkSent("BTC/USD", Instant.parse("2026-04-27T12:00:00Z"), Direction.UP)
@@ -25,6 +37,18 @@ class JdbcSentPredictionRepositoryIT {
         assertTrue(result)
     }
 
+    /**
+     * Test purpose - Verify that {@link JdbcSentPredictionRepository#tryMarkSent} returns
+     * {@code false} when a prediction for the same symbol and minute already exists in the
+     * database, preventing duplicate submissions.
+     *
+     * <p>Test data - Two calls with symbol {@code "ETH/USD"} and the same minute
+     * {@code "2026-04-27T12:01:00Z"}, with different directions.
+     *
+     * <p>Test expected result - Second call returns {@code false}.
+     *
+     * <p>Test type - Negative.
+     */
     @Test
     fun `given existing entry when tryMarkSent with same symbol and minute then returns false`() {
         val minute = Instant.parse("2026-04-27T12:01:00Z")
@@ -35,6 +59,18 @@ class JdbcSentPredictionRepositoryIT {
         assertFalse(result)
     }
 
+    /**
+     * Test purpose - Verify that {@link JdbcSentPredictionRepository#tryMarkSent} returns
+     * {@code true} when the same symbol is used but at a different minute, allowing one
+     * prediction per instrument per minute.
+     *
+     * <p>Test data - Two calls with symbol {@code "XTB"}, first at {@code "2026-04-27T12:02:00Z"},
+     * second at {@code "2026-04-27T12:03:00Z"}.
+     *
+     * <p>Test expected result - Second call returns {@code true}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `given existing entry when tryMarkSent with different minute then returns true`() {
         sut.tryMarkSent("XTB", Instant.parse("2026-04-27T12:02:00Z"), Direction.UP)
@@ -44,6 +80,18 @@ class JdbcSentPredictionRepositoryIT {
         assertTrue(result)
     }
 
+    /**
+     * Test purpose - Verify that {@link JdbcSentPredictionRepository#tryMarkSent} returns
+     * {@code true} when a different symbol is used at the same minute, confirming per-symbol
+     * deduplication in the database.
+     *
+     * <p>Test data - First call with symbol {@code "CDR"} at {@code "2026-04-27T12:04:00Z"},
+     * second call with symbol {@code "XTB"} at the same minute.
+     *
+     * <p>Test expected result - Second call returns {@code true}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `given existing entry when tryMarkSent with different symbol then returns true`() {
         sut.tryMarkSent("CDR", Instant.parse("2026-04-27T12:04:00Z"), Direction.DOWN)

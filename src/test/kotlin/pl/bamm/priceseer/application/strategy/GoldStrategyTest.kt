@@ -28,11 +28,32 @@ class GoldStrategyTest {
     // Common
     // ============================================================
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.UP}
+     * as a safe default when no price history is available.
+     *
+     * <p>Test data - Empty list of {@link MarketPrice} for symbol {@code "XAU/USD"}.
+     *
+     * <p>Test expected result - {@code Direction.UP}.
+     *
+     * <p>Test type - Negative.
+     */
     @Test
     fun `given empty history when predict then returns UP`() {
         assertEquals(Direction.UP, daytimeSut.predict("XAU/USD", emptyList()))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} detects a QUIET regime for
+     * {@code "XAU/USD"} (near-zero volatility) and returns {@code Direction.UP}.
+     *
+     * <p>Test data - 5 candles with nearly identical open/close ({@code open=2500.0},
+     * {@code close=2500.01}).
+     *
+     * <p>Test expected result - {@code Direction.UP}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `given quiet regime when predict then returns UP`() {
         val history = (1..5).map { marketPrice(symbol = "XAU/USD", open = 2500.0, close = 2500.01) }
@@ -43,6 +64,17 @@ class GoldStrategyTest {
     // PM Fix Counter-Trend
     // ============================================================
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} applies PM Fix counter-trend
+     * reversal during the 14:00-14:05 UTC window when a large bullish candle is detected.
+     *
+     * <p>Test data - Clock fixed at 14:02 UTC (PM Fix window), 15 candles with ATR of
+     * {@code 2.0}, last candle with body of {@code 5.0} (exceeds ATR * 2.0).
+     *
+     * <p>Test expected result - {@code Direction.DOWN}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `PM Fix large bullish candle returns DOWN`() {
         val sut = strategyAt(14, 2) // 14:02 UTC — within PM Fix window
@@ -54,6 +86,17 @@ class GoldStrategyTest {
         assertEquals(Direction.DOWN, sut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} applies PM Fix counter-trend
+     * reversal during the 14:00-14:05 UTC window when a large bearish candle is detected.
+     *
+     * <p>Test data - Clock fixed at 14:03 UTC (PM Fix window), 15 candles with ATR of
+     * {@code 2.0}, last candle with body of {@code 5.0} (bearish, exceeds ATR * 2.0).
+     *
+     * <p>Test expected result - {@code Direction.UP}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `PM Fix large bearish candle returns UP`() {
         val sut = strategyAt(14, 3)
@@ -65,6 +108,18 @@ class GoldStrategyTest {
         assertEquals(Direction.UP, sut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} does not trigger PM Fix
+     * counter-trend when the candle's body is too small relative to ATR, even during the
+     * PM Fix window.
+     *
+     * <p>Test data - Clock fixed at 14:02 UTC (PM Fix window), 15 candles with ATR of
+     * {@code 2.0}, last candle with body of {@code 0.5} (less than ATR * 2.0).
+     *
+     * <p>Test expected result - {@code Direction.UP} (proceeds to ATR weak filter).
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `PM Fix small candle does not trigger counter-trend`() {
         val sut = strategyAt(14, 2)
@@ -74,6 +129,17 @@ class GoldStrategyTest {
         assertEquals(Direction.UP, sut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} does not trigger PM Fix
+     * counter-trend outside the 14:00-14:05 UTC window, even with a large candle body.
+     *
+     * <p>Test data - Clock fixed at 15:00 UTC (outside PM Fix window), 15 candles with ATR of
+     * {@code 2.0}, last candle with body of {@code 5.0}.
+     *
+     * <p>Test expected result - {@code Direction.UP} (ATR strong momentum, not counter-trend).
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `outside PM Fix window does not trigger counter-trend`() {
         val sut = strategyAt(15, 0) // 15:00 — outside 14:00-14:05
@@ -86,6 +152,17 @@ class GoldStrategyTest {
     // ATR Filter
     // ============================================================
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.UP}
+     * via ATR-filtered momentum when the last candle has a strong bullish body.
+     *
+     * <p>Test data - 15 candles with ATR of {@code 2.0}, last candle with body of {@code 2.0}
+     * (exceeds ATR * 0.8).
+     *
+     * <p>Test expected result - {@code Direction.UP}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `strong bullish body returns UP via momentum`() {
         val history = buildGoldHistoryWithAtr(atrRange = 2.0, lastOpen = 2500.0, lastClose = 2502.0)
@@ -93,12 +170,34 @@ class GoldStrategyTest {
         assertEquals(Direction.UP, daytimeSut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.DOWN}
+     * via ATR-filtered momentum when the last candle has a strong bearish body.
+     *
+     * <p>Test data - 15 candles with ATR of {@code 2.0}, last candle with body of {@code 2.0}
+     * (bearish, exceeds ATR * 0.8).
+     *
+     * <p>Test expected result - {@code Direction.DOWN}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `strong bearish body returns DOWN via momentum`() {
         val history = buildGoldHistoryWithAtr(atrRange = 2.0, lastOpen = 2502.0, lastClose = 2500.0)
         assertEquals(Direction.DOWN, daytimeSut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.UP}
+     * when the last candle's body is weak relative to ATR, treating it as noise.
+     *
+     * <p>Test data - 15 candles with ATR of {@code 10.0}, last candle with body of {@code 0.5}
+     * (less than ATR * 0.3).
+     *
+     * <p>Test expected result - {@code Direction.UP}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `weak body returns UP`() {
         val history = buildGoldHistoryWithAtr(atrRange = 10.0, lastOpen = 2500.0, lastClose = 2500.5)
@@ -110,6 +209,17 @@ class GoldStrategyTest {
     // Regression to Mean
     // ============================================================
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.DOWN}
+     * when the current price is above SMA10 by more than 0.15%, indicating regression to mean.
+     *
+     * <p>Test data - 10 flat candles at {@code 2500.0} followed by one candle closing at
+     * {@code 2504.5} (well above SMA10).
+     *
+     * <p>Test expected result - {@code Direction.DOWN}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `price above SMA10 by more than 0_15 pct returns DOWN`() {
         // 11 candles: RSI needs 15 → null. Body in ATR middle range. Close far above SMA10.
@@ -119,6 +229,17 @@ class GoldStrategyTest {
         assertEquals(Direction.DOWN, daytimeSut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.UP}
+     * when the current price is below SMA10 by more than 0.15%, indicating regression to mean.
+     *
+     * <p>Test data - 10 flat candles at {@code 2500.0} followed by one candle closing at
+     * {@code 2495.5} (well below SMA10).
+     *
+     * <p>Test expected result - {@code Direction.UP}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `price below SMA10 by more than 0_15 pct returns UP`() {
         val base = (1..10).map { marketPrice(symbol = "XAU/USD", open = 2500.0, close = 2500.0, high = 2501.0, low = 2499.0) }
@@ -131,6 +252,17 @@ class GoldStrategyTest {
     // Risk Proxy (inverse for gold)
     // ============================================================
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} applies the inverse risk proxy
+     * during the NY session — when both stock proxies are UP (risk-on), gold is predicted DOWN.
+     *
+     * <p>Test data - Clock fixed at 15:00 UTC (NY session), {@code "XTB"} and {@code "CDR"}
+     * both bullish in repository, normal {@code "XAU/USD"} candle.
+     *
+     * <p>Test expected result - {@code Direction.DOWN}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `risk-on stocks both UP during NY session returns DOWN for gold`() {
         val sut = strategyAt(15) // NY session
@@ -143,6 +275,17 @@ class GoldStrategyTest {
         assertEquals(Direction.DOWN, sut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} applies the inverse risk proxy
+     * during the NY session — when both stock proxies are DOWN (risk-off), gold is predicted UP.
+     *
+     * <p>Test data - Clock fixed at 15:00 UTC (NY session), {@code "XTB"} and {@code "CDR"}
+     * both bearish in repository, normal {@code "XAU/USD"} candle.
+     *
+     * <p>Test expected result - {@code Direction.UP}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `risk-off stocks both DOWN during NY session returns UP for gold`() {
         val sut = strategyAt(15)
@@ -155,6 +298,17 @@ class GoldStrategyTest {
         assertEquals(Direction.UP, sut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} does not use the risk proxy
+     * outside the NY session, even when both stocks are bullish.
+     *
+     * <p>Test data - Clock fixed at 10:00 UTC (outside NY session), {@code "XTB"} and
+     * {@code "CDR"} both bullish in repository, single bullish {@code "XAU/USD"} candle.
+     *
+     * <p>Test expected result - {@code Direction.UP} (risk proxy skipped, pure momentum fallback).
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `risk proxy not used outside NY session`() {
         val sut = strategyAt(10) // 10:00 UTC — outside NY
@@ -172,6 +326,17 @@ class GoldStrategyTest {
     // SMA Trend Filter (fallback)
     // ============================================================
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.UP}
+     * when the short-term SMA is above the rising long-term SMA, indicating an uptrend.
+     *
+     * <p>Test data - 13 candles with gradually rising prices, insufficient for RSI or
+     * Bollinger Bands.
+     *
+     * <p>Test expected result - {@code Direction.UP}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `SMA short above rising SMA long returns UP`() {
         // 13 candles: RSI needs 15 → null. BB needs 20 → null. Body in ATR middle range.
@@ -182,6 +347,17 @@ class GoldStrategyTest {
         assertEquals(Direction.UP, daytimeSut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.DOWN}
+     * when the short-term SMA is below the falling long-term SMA, indicating a downtrend.
+     *
+     * <p>Test data - 13 candles with gradually falling prices, alternating body sizes for
+     * NORMAL regime classification.
+     *
+     * <p>Test expected result - {@code Direction.DOWN}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `SMA short below falling SMA long returns DOWN`() {
         // Alternating body sizes (1.0/0.3) for NORMAL regime. Spread=2.0 keeps body in ATR middle range.
@@ -193,12 +369,34 @@ class GoldStrategyTest {
         assertEquals(Direction.DOWN, daytimeSut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} uses pure momentum fallback
+     * and returns {@code Direction.UP} for a single bullish candle.
+     *
+     * <p>Test data - Single {@link MarketPrice} for {@code "XAU/USD"} with {@code open=2500.0}
+     * and {@code close=2501.0}.
+     *
+     * <p>Test expected result - {@code Direction.UP}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `single bullish candle uses pure momentum fallback UP`() {
         val history = listOf(marketPrice(symbol = "XAU/USD", open = 2500.0, close = 2501.0))
         assertEquals(Direction.UP, daytimeSut.predict("XAU/USD", history))
     }
 
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} uses pure momentum fallback
+     * and returns {@code Direction.DOWN} for a single bearish candle.
+     *
+     * <p>Test data - Single {@link MarketPrice} for {@code "XAU/USD"} with {@code open=2501.0}
+     * and {@code close=2500.0}.
+     *
+     * <p>Test expected result - {@code Direction.DOWN}.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `single bearish candle uses pure momentum fallback DOWN`() {
         val history = listOf(marketPrice(symbol = "XAU/USD", open = 2501.0, close = 2500.0))
