@@ -87,24 +87,23 @@ class ForexStrategyTest {
     }
 
     /**
-     * Test purpose - Verify that {@link ForexStrategy#predict} applies mean reversion for
-     * {@code "EUR/USD"} after 3 consecutive bullish candles, returning {@code Direction.DOWN}.
+     * Test purpose - Verify that {@link ForexStrategy#predict} returns {@code Direction.UP}
+     * for {@code "EUR/USD"} after 3 consecutive bullish candles (mean reversion removed).
      *
      * <p>Test data - 3 bullish candles with bodies greater than ATR * 0.25.
      *
-     * <p>Test expected result - {@code Direction.DOWN}.
+     * <p>Test expected result - {@code Direction.UP}.
      *
      * <p>Test type - Positive.
      */
     @Test
-    fun `EUR-USD mean reversion after 3 bullish candles returns DOWN`() {
-        // Bodies must be > ATR*0.25 to pass small candle filter, varied to avoid QUIET regime
+    fun `EUR-USD 3 bullish candles returns UP`() {
         val history = listOf(
             marketPrice(symbol = "EUR/USD", open = 1.1000, close = 1.1008, high = 1.1010, low = 1.0998),
             marketPrice(symbol = "EUR/USD", open = 1.1000, close = 1.1012, high = 1.1014, low = 1.0998),
             marketPrice(symbol = "EUR/USD", open = 1.1000, close = 1.1006, high = 1.1008, low = 1.0998),
         )
-        assertEquals(Direction.DOWN, daytimeSut.predict("EUR/USD", history))
+        assertEquals(Direction.UP, daytimeSut.predict("EUR/USD", history))
     }
 
     /**
@@ -267,24 +266,24 @@ class ForexStrategyTest {
     }
 
     /**
-     * Test purpose - Verify that {@link ForexStrategy#predict} applies mean reversion for
-     * {@code "GBP/JPY"} after 3 consecutive bullish candles with small bodies.
+     * Test purpose - Verify that {@link ForexStrategy#predict} returns {@code Direction.UP}
+     * for {@code "GBP/JPY"} after 3 consecutive bullish candles with small bodies (mean
+     * reversion removed).
      *
      * <p>Test data - Base history with ATR of {@code 0.20} followed by 3 small bullish candles
      * (body less than ATR * 0.5).
      *
-     * <p>Test expected result - {@code Direction.DOWN}.
+     * <p>Test expected result - {@code Direction.UP}.
      *
      * <p>Test type - Positive.
      */
     @Test
-    fun `GBP-JPY mean reversion after 3 bullish candles returns DOWN`() {
+    fun `GBP-JPY 3 bullish candles returns UP`() {
         val base = buildForexHistoryWithAtr(atrRange = 0.20, lastOpen = 190.0, lastClose = 190.0, symbol = "GBP/JPY")
-        // Add 3 small bullish candles (body < ATR*0.5 to skip ATR momentum)
         val streak = (1..3).map {
             marketPrice(symbol = "GBP/JPY", open = 190.0, close = 190.02, high = 190.10, low = 189.90)
         }
-        assertEquals(Direction.DOWN, daytimeSut.predict("GBP/JPY", base + streak))
+        assertEquals(Direction.UP, daytimeSut.predict("GBP/JPY", base + streak))
     }
 
     /**

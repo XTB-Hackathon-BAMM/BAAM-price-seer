@@ -160,8 +160,8 @@ class CryptoStrategy(
         private const val ATR_STRONG = 0.7
         private const val ATR_WEAK = 0.3
         private const val RSI_PERIOD = 14
-        private const val RSI_OVERSOLD = 20.0
-        private const val RSI_OVERBOUGHT = 80.0
+        private const val RSI_OVERSOLD = 35.0
+        private const val RSI_OVERBOUGHT = 65.0
         private const val BTC_LEAD_THRESHOLD = 0.5
         private const val DOJI_THRESHOLD = 0.15
     }

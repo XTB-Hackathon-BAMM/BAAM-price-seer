@@ -37,13 +37,10 @@ class GoldStrategy(
         }
 
         rsiSignal(history)?.let { return it }
-        regressionToMean(history)?.let { return it }
 
         if (isNySession()) {
             riskProxy()?.let { return it }
         }
-
-        bollingerBands(history)?.let { return it }
 
         return smaTrendFilter(history)
     }
@@ -84,20 +81,6 @@ class GoldStrategy(
         }
     }
 
-    private fun regressionToMean(history: List<MarketPrice>): Direction? {
-        if (history.size < SMA_LONG_PERIOD) return null
-        val sma10 = sma(history, SMA_LONG_PERIOD)
-        if (sma10 == 0.0) return null
-
-        val deviation = (history.last().close - sma10) / sma10 * 100
-
-        return when {
-            deviation > REGRESSION_THRESHOLD -> Direction.DOWN
-            deviation < -REGRESSION_THRESHOLD -> Direction.UP
-            else -> null
-        }
-    }
-
     private fun riskProxy(): Direction? {
         val xtbLatest = priceRepository.latest("XTB") ?: return null
         val cdrLatest = priceRepository.latest("CDR") ?: return null
@@ -108,60 +91,6 @@ class GoldStrategy(
         return when {
             xtbUp && cdrUp -> Direction.DOWN
             !xtbUp && !cdrUp -> Direction.UP
-            else -> null
-        }
-    }
-
-    private fun bollingerBands(history: List<MarketPrice>): Direction? {
-        if (history.size < BB_PERIOD) return null
-
-        val closes = history.takeLast(BB_PERIOD).map { it.close }
-        val sma20 = closes.average()
-        val std20 = standardDeviation(closes)
-        if (std20 == 0.0) return Direction.UP
-
-        val upper = sma20 + 2 * std20
-        val lower = sma20 - 2 * std20
-        val bandWidth = upper - lower
-        val last = history.last().close
-
-        val recentWidths = if (history.size >= BB_PERIOD + BB_AVG_WINDOW) {
-            (0 until BB_AVG_WINDOW).map { offset ->
-                val slice = history.subList(history.size - BB_PERIOD - offset, history.size - offset)
-                val c = slice.map { it.close }
-                val s = c.average()
-                val d = standardDeviation(c)
-                (s + 2 * d) - (s - 2 * d)
-            }
-        } else null
-
-        val avgWidth = recentWidths?.average()
-
-        if (avgWidth != null && avgWidth > 0) {
-            val widthRatio = bandWidth / avgWidth
-
-            if (widthRatio < BB_SQUEEZE_THRESHOLD) return Direction.UP
-
-            if (widthRatio > BB_TREND_THRESHOLD) {
-                return when {
-                    last > upper -> Direction.UP   // breakout → continue
-                    last < lower -> Direction.DOWN  // breakdown → continue
-                    else -> null
-                }
-            }
-
-            // Normal band width
-            return when {
-                last > upper -> Direction.DOWN  // mean reversion
-                last < lower -> Direction.UP    // mean reversion
-                else -> null
-            }
-        }
-
-        // Not enough data for avg width — use simple mean reversion
-        return when {
-            last > upper -> Direction.DOWN
-            last < lower -> Direction.UP
             else -> null
         }
     }
@@ -242,8 +171,8 @@ class GoldStrategy(
 
     companion object {
         private const val REGIME_WINDOW = 5
-        private const val VOLATILITY_HIGH = 0.0003
-        private const val VOLATILITY_LOW = 0.0001
+        private const val VOLATILITY_HIGH = 0.001
+        private const val VOLATILITY_LOW = 0.0002
         private const val ATR_PERIOD = 14
         private const val ATR_STRONG = 0.8
         private const val ATR_WEAK = 0.3
@@ -251,13 +180,8 @@ class GoldStrategy(
         private const val RSI_PERIOD = 14
         private const val RSI_OVERSOLD = 25.0
         private const val RSI_OVERBOUGHT = 75.0
-        private const val REGRESSION_THRESHOLD = 0.15
         private const val SMA_SHORT_PERIOD = 3
         private const val SMA_LONG_PERIOD = 10
         private const val SMA_SLOPE_LOOKBACK = 3
-        private const val BB_PERIOD = 20
-        private const val BB_AVG_WINDOW = 10
-        private const val BB_SQUEEZE_THRESHOLD = 0.7
-        private const val BB_TREND_THRESHOLD = 1.3
     }
 }

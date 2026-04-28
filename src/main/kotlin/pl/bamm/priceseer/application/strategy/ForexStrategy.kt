@@ -36,7 +36,6 @@ class ForexStrategy(
         if (atr > 0 && isSmallCandle(last, atr)) return Direction.UP
 
         rsiSignal(history)?.let { return it }
-        meanReversion(history)?.let { return it }
 
         return Direction.UP
     }
@@ -55,9 +54,7 @@ class ForexStrategy(
             }
         }
 
-        meanReversion(history)?.let { return it }
-
-        return pureMomentum(history.last())
+        return Direction.UP
     }
 
     private fun predictUsdJpy(history: List<MarketPrice>): Direction {
@@ -76,7 +73,6 @@ class ForexStrategy(
         }
 
         rsiSignal(history)?.let { return it }
-        meanReversion(history)?.let { return it }
 
         return Direction.UP
     }
@@ -98,20 +94,6 @@ class ForexStrategy(
     private fun isSmallCandle(candle: MarketPrice, atr: Double): Boolean {
         val body = abs(candle.close - candle.open)
         return body < atr * SMALL_CANDLE_THRESHOLD
-    }
-
-    private fun meanReversion(history: List<MarketPrice>): Direction? {
-        if (history.size < MEAN_REVERSION_STREAK) return null
-        val recent = history.takeLast(MEAN_REVERSION_STREAK)
-
-        val allUp = recent.all { it.close >= it.open }
-        val allDown = recent.all { it.close < it.open }
-
-        return when {
-            allUp -> Direction.DOWN
-            allDown -> Direction.UP
-            else -> null
-        }
     }
 
     private fun counterTrend(candle: MarketPrice, atr: Double): Direction? {
@@ -202,13 +184,12 @@ class ForexStrategy(
 
     companion object {
         private const val REGIME_WINDOW = 5
-        private const val VOLATILITY_HIGH = 0.0002
-        private const val VOLATILITY_LOW = 0.00005
+        private const val VOLATILITY_HIGH = 0.002
+        private const val VOLATILITY_LOW = 0.0003
         private const val ATR_PERIOD = 14
         private const val SMALL_CANDLE_THRESHOLD = 0.25
         private const val ATR_MOMENTUM_THRESHOLD = 0.5
         private const val COUNTER_TREND_THRESHOLD = 2.0
-        private const val MEAN_REVERSION_STREAK = 3
         private const val RSI_PERIOD = 14
         private const val RSI_OVERSOLD = 25.0
         private const val RSI_OVERBOUGHT = 75.0

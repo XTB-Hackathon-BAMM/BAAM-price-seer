@@ -206,42 +206,43 @@ class GoldStrategyTest {
     }
 
     // ============================================================
-    // Regression to Mean
+    // Pure momentum fallback (insufficient history for SMA slope)
     // ============================================================
 
     /**
-     * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.DOWN}
-     * when the current price is above SMA10 by more than 0.15%, indicating regression to mean.
-     *
-     * <p>Test data - 10 flat candles at {@code 2500.0} followed by one candle closing at
-     * {@code 2504.5} (well above SMA10).
-     *
-     * <p>Test expected result - {@code Direction.DOWN}.
-     *
-     * <p>Test type - Positive.
-     */
-    @Test
-    fun `price above SMA10 by more than 0_15 pct returns DOWN`() {
-        // 11 candles: RSI needs 15 → null. Body in ATR middle range. Close far above SMA10.
-        val base = (1..10).map { marketPrice(symbol = "XAU/USD", open = 2500.0, close = 2500.0, high = 2501.0, low = 2499.0) }
-        val last = marketPrice(symbol = "XAU/USD", open = 2503.5, close = 2504.5, high = 2505.0, low = 2503.0)
-        val history = base + last
-        assertEquals(Direction.DOWN, daytimeSut.predict("XAU/USD", history))
-    }
-
-    /**
      * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.UP}
-     * when the current price is below SMA10 by more than 0.15%, indicating regression to mean.
+     * via pure momentum fallback when history is insufficient for SMA slope analysis and
+     * the last candle is bullish.
      *
-     * <p>Test data - 10 flat candles at {@code 2500.0} followed by one candle closing at
-     * {@code 2495.5} (well below SMA10).
+     * <p>Test data - 10 flat candles at {@code 2500.0} followed by one bullish candle closing
+     * at {@code 2504.5}. Only 11 candles — not enough for SMA slope (needs 13).
      *
      * <p>Test expected result - {@code Direction.UP}.
      *
      * <p>Test type - Positive.
      */
     @Test
-    fun `price below SMA10 by more than 0_15 pct returns UP`() {
+    fun `price above SMA10 with insufficient slope history returns UP via momentum`() {
+        val base = (1..10).map { marketPrice(symbol = "XAU/USD", open = 2500.0, close = 2500.0, high = 2501.0, low = 2499.0) }
+        val last = marketPrice(symbol = "XAU/USD", open = 2503.5, close = 2504.5, high = 2505.0, low = 2503.0)
+        val history = base + last
+        assertEquals(Direction.UP, daytimeSut.predict("XAU/USD", history))
+    }
+
+    /**
+     * Test purpose - Verify that {@link GoldStrategy#predict} returns {@code Direction.UP}
+     * for a QUIET regime when 10 flat candles are followed by one small bearish candle.
+     * The low volatility of this data triggers the QUIET regime classification.
+     *
+     * <p>Test data - 10 flat candles at {@code 2500.0} followed by one bearish candle closing
+     * at {@code 2495.5}. Volatility std falls below QUIET threshold.
+     *
+     * <p>Test expected result - {@code Direction.UP}.
+     *
+     * <p>Test type - Positive.
+     */
+    @Test
+    fun `low volatility bearish data classified as QUIET returns UP`() {
         val base = (1..10).map { marketPrice(symbol = "XAU/USD", open = 2500.0, close = 2500.0, high = 2501.0, low = 2499.0) }
         val last = marketPrice(symbol = "XAU/USD", open = 2496.5, close = 2495.5, high = 2497.0, low = 2495.0)
         val history = base + last
@@ -360,11 +361,10 @@ class GoldStrategyTest {
      */
     @Test
     fun `SMA short below falling SMA long returns DOWN`() {
-        // Alternating body sizes (1.0/0.3) for NORMAL regime. Spread=2.0 keeps body in ATR middle range.
         val history = (0 until 13).map { i ->
-            val price = 2510.0 - i * 0.3
-            val body = if (i % 2 == 0) 1.0 else 0.3
-            marketPrice(symbol = "XAU/USD", open = price, close = price - body, high = price + 0.5, low = price - 1.5)
+            val price = 2510.0 - i * 0.8
+            val body = if (i % 2 == 0) 3.0 else 1.0
+            marketPrice(symbol = "XAU/USD", open = price, close = price - body, high = price + 1.0, low = price - 4.0)
         }
         assertEquals(Direction.DOWN, daytimeSut.predict("XAU/USD", history))
     }
