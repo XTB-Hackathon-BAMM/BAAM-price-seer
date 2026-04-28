@@ -23,6 +23,7 @@ class PredictionApplicationService(
     @Qualifier("crypto") private val cryptoStrategy: PredictionStrategy,
     @Qualifier("forex") private val forexStrategy: PredictionStrategy,
     @Qualifier("gold") private val goldStrategy: PredictionStrategy,
+    @Qualifier("stock") private val stockStrategy: PredictionStrategy,
     @Value("\${app.team-name}") private val teamName: String,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -64,6 +65,7 @@ class PredictionApplicationService(
     private fun strategyFor(symbol: String): PredictionStrategy = when (symbol) {
         in CRYPTO_INSTRUMENTS -> cryptoStrategy
         in FOREX_INSTRUMENTS -> forexStrategy
+        in STOCK_INSTRUMENTS -> stockStrategy
         "XAU/USD" -> goldStrategy
         else -> defaultStrategy
     }
@@ -75,5 +77,6 @@ class PredictionApplicationService(
         )
         private val CRYPTO_INSTRUMENTS = setOf("BTC/USD", "ETH/USD")
         private val FOREX_INSTRUMENTS = setOf("EUR/USD", "GBP/JPY", "USD/JPY")
+        private val STOCK_INSTRUMENTS = setOf("XTB", "CDR")
     }
 }

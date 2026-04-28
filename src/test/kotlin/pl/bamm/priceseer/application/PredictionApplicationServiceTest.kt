@@ -28,6 +28,7 @@ class PredictionApplicationServiceTest {
     private val cryptoStrategy = mockk<PredictionStrategy>()
     private val forexStrategy = mockk<PredictionStrategy>()
     private val goldStrategy = mockk<PredictionStrategy>()
+    private val stockStrategy = mockk<PredictionStrategy>()
 
     private lateinit var sut: PredictionApplicationService
 
@@ -36,7 +37,7 @@ class PredictionApplicationServiceTest {
         priceRepository = InMemoryPriceRepository()
         sut = PredictionApplicationService(
             priceRepository, predictionPort, sentPredictionRepository,
-            defaultStrategy, cryptoStrategy, forexStrategy, goldStrategy, "BAAM"
+            defaultStrategy, cryptoStrategy, forexStrategy, goldStrategy, stockStrategy, "BAAM"
         )
     }
 
@@ -45,6 +46,7 @@ class PredictionApplicationServiceTest {
         every { cryptoStrategy.predict(any(), any()) } returns Direction.UP
         every { forexStrategy.predict(any(), any()) } returns Direction.UP
         every { goldStrategy.predict(any(), any()) } returns Direction.UP
+        every { stockStrategy.predict(any(), any()) } returns Direction.UP
         every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(any()) } just runs
     }
@@ -153,25 +155,25 @@ class PredictionApplicationServiceTest {
 
     /**
      * Test purpose - Verify that {@link PredictionApplicationService#sendPredictions} routes
-     * the remaining instruments ({@code "XTB"} and {@code "CDR"}) to the default strategy,
-     * after crypto, forex, and gold instruments are handled by their respective strategies.
+     * stock instruments ({@code "XTB"} and {@code "CDR"}) to the stock strategy.
      *
      * <p>Test data - All 8 instruments stored in the repository, all strategies stubbed to
      * return {@code Direction.UP}.
      *
-     * <p>Test expected result - Default strategy is invoked exactly 2 times.
+     * <p>Test expected result - Stock strategy is invoked exactly 2 times, default strategy
+     * is never invoked.
      *
      * <p>Test type - Positive.
      */
     @Test
-    fun `sendPredictions uses default strategy for XTB and CDR only`() {
+    fun `sendPredictions uses stock strategy for XTB and CDR`() {
         PredictionApplicationService.INSTRUMENTS.forEach { priceRepository.store(marketPrice(it)) }
         stubAllStrategies()
 
         sut.sendPredictions()
 
-        // 8 total - 2 crypto - 3 forex - 1 gold = 2 default (XTB, CDR)
-        verify(exactly = 2) { defaultStrategy.predict(any(), any()) }
+        verify(exactly = 2) { stockStrategy.predict(any(), any()) }
+        verify(exactly = 0) { defaultStrategy.predict(any(), any()) }
     }
 
     /**
@@ -199,7 +201,7 @@ class PredictionApplicationServiceTest {
      * Test purpose - Verify that {@link PredictionApplicationService#sendPredictions} sets
      * the team name to {@code "BAAM"} on all sent predictions.
      *
-     * <p>Test data - Single {@link MarketPrice} for symbol {@code "XTB"}, default strategy
+     * <p>Test data - Single {@link MarketPrice} for symbol {@code "XTB"}, stock strategy
      * returning {@code Direction.UP}.
      *
      * <p>Test expected result - Captured prediction has team name {@code "BAAM"}.
@@ -210,7 +212,7 @@ class PredictionApplicationServiceTest {
     fun `sendPredictions sets team name correctly`() {
         priceRepository.store(marketPrice("XTB"))
         val capturedPredictions = mutableListOf<Prediction>()
-        every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { stockStrategy.predict(any(), any()) } returns Direction.UP
         every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
         every { predictionPort.send(capture(capturedPredictions)) } just runs
 
@@ -246,7 +248,7 @@ class PredictionApplicationServiceTest {
      * sending a prediction when {@link SentPredictionRepository#tryMarkSent} returns {@code false},
      * indicating the prediction for that symbol and minute was already sent.
      *
-     * <p>Test data - Single {@link MarketPrice} for symbol {@code "XTB"}, default strategy
+     * <p>Test data - Single {@link MarketPrice} for symbol {@code "XTB"}, stock strategy
      * returning {@code Direction.UP}, {@code tryMarkSent} returning {@code false}.
      *
      * <p>Test expected result - {@link PredictionPort#send} is never invoked.
@@ -256,7 +258,7 @@ class PredictionApplicationServiceTest {
     @Test
     fun `sendPredictions skips already sent predictions for same minute`() {
         priceRepository.store(marketPrice("XTB"))
-        every { defaultStrategy.predict(any(), any()) } returns Direction.UP
+        every { stockStrategy.predict(any(), any()) } returns Direction.UP
         every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns false
 
         sut.sendPredictions()

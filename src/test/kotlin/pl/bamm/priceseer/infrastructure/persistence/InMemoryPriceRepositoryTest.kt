@@ -140,16 +140,16 @@ class InMemoryPriceRepositoryTest {
      * Test purpose - Verify that {@link InMemoryPriceRepository} evicts the oldest prices when
      * the number of stored prices exceeds the configured history size limit.
      *
-     * <p>Test data - 21 {@link MarketPrice} entries for symbol {@code "BTC/USD"} stored into a
-     * repository with a history size of 20.
+     * <p>Test data - 121 {@link MarketPrice} entries for symbol {@code "BTC/USD"} stored into a
+     * repository with a history size of 120.
      *
-     * <p>Test expected result - History contains exactly 20 entries (the oldest one is evicted).
+     * <p>Test expected result - History contains exactly 120 entries (the oldest one is evicted).
      *
      * <p>Test type - Positive.
      */
     @Test
     fun `when prices exceed history size then oldest are evicted`() {
-        val historySize = 20
+        val historySize = 120
         repeat(historySize + 1) { i ->
             sut.store(marketPrice("BTC/USD", timestamp = "2026-04-27T${12 + i / 60}:${String.format("%02d", i % 60)}:00Z"))
         }
