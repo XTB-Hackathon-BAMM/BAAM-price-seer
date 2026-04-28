@@ -121,15 +121,15 @@ class ForexStrategy(
     }
 
     private fun riskProxy(): Direction? {
-        val aaplLatest = priceRepository.latest("AAPL") ?: return null
-        val msftLatest = priceRepository.latest("MSFT") ?: return null
+        val xtbLatest = priceRepository.latest("XTB") ?: return null
+        val cdrLatest = priceRepository.latest("CDR") ?: return null
 
-        val aaplUp = aaplLatest.close >= aaplLatest.open
-        val msftUp = msftLatest.close >= msftLatest.open
+        val xtbUp = xtbLatest.close >= xtbLatest.open
+        val cdrUp = cdrLatest.close >= cdrLatest.open
 
         return when {
-            aaplUp && msftUp -> Direction.UP
-            !aaplUp && !msftUp -> Direction.DOWN
+            xtbUp && cdrUp -> Direction.UP
+            !xtbUp && !cdrUp -> Direction.DOWN
             else -> null
         }
     }

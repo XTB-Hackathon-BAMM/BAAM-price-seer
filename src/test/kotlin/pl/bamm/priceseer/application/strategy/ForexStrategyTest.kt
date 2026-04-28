@@ -199,8 +199,8 @@ class ForexStrategyTest {
     @Test
     fun `USD-JPY risk-proxy both stocks UP during NY session returns UP`() {
         val sut = strategyAt(15) // 15:00 UTC — NY session
-        priceRepository.store(marketPrice(symbol = "AAPL", open = 180.0, close = 181.0))
-        priceRepository.store(marketPrice(symbol = "MSFT", open = 420.0, close = 421.0))
+        priceRepository.store(marketPrice(symbol = "XTB", open = 180.0, close = 181.0))
+        priceRepository.store(marketPrice(symbol = "CDR", open = 420.0, close = 421.0))
 
         // Normal candle, no counter-trend trigger
         val history = listOf(
@@ -212,8 +212,8 @@ class ForexStrategyTest {
     @Test
     fun `USD-JPY risk-proxy both stocks DOWN during NY session returns DOWN`() {
         val sut = strategyAt(15)
-        priceRepository.store(marketPrice(symbol = "AAPL", open = 181.0, close = 180.0))
-        priceRepository.store(marketPrice(symbol = "MSFT", open = 421.0, close = 420.0))
+        priceRepository.store(marketPrice(symbol = "XTB", open = 181.0, close = 180.0))
+        priceRepository.store(marketPrice(symbol = "CDR", open = 421.0, close = 420.0))
 
         val history = listOf(
             marketPrice(symbol = "USD/JPY", open = 155.0, close = 155.01, high = 155.05, low = 154.95),
@@ -224,8 +224,8 @@ class ForexStrategyTest {
     @Test
     fun `USD-JPY risk-proxy not used outside NY session`() {
         val sut = strategyAt(10) // 10:00 UTC — outside NY session
-        priceRepository.store(marketPrice(symbol = "AAPL", open = 181.0, close = 180.0))
-        priceRepository.store(marketPrice(symbol = "MSFT", open = 421.0, close = 420.0))
+        priceRepository.store(marketPrice(symbol = "XTB", open = 181.0, close = 180.0))
+        priceRepository.store(marketPrice(symbol = "CDR", open = 421.0, close = 420.0))
 
         // Both stocks DOWN but not in NY session → risk proxy skipped → fallback UP
         val history = listOf(
@@ -237,8 +237,8 @@ class ForexStrategyTest {
     @Test
     fun `USD-JPY risk-proxy mixed signals falls through`() {
         val sut = strategyAt(15)
-        priceRepository.store(marketPrice(symbol = "AAPL", open = 180.0, close = 181.0)) // UP
-        priceRepository.store(marketPrice(symbol = "MSFT", open = 421.0, close = 420.0)) // DOWN
+        priceRepository.store(marketPrice(symbol = "XTB", open = 180.0, close = 181.0)) // UP
+        priceRepository.store(marketPrice(symbol = "CDR", open = 421.0, close = 420.0)) // DOWN
 
         val history = listOf(
             marketPrice(symbol = "USD/JPY", open = 155.0, close = 155.01, high = 155.05, low = 154.95),

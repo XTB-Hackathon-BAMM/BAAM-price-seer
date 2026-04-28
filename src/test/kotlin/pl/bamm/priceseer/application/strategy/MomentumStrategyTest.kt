@@ -13,7 +13,7 @@ class MomentumStrategyTest {
     fun `given close greater than open when predict then returns UP`() {
         val history = listOf(marketPrice(open = 1.0, close = 1.1))
 
-        val result = sut.predict("AAPL", history)
+        val result = sut.predict("XTB", history)
 
         assertEquals(Direction.UP, result)
     }
@@ -22,7 +22,7 @@ class MomentumStrategyTest {
     fun `given close less than open when predict then returns DOWN`() {
         val history = listOf(marketPrice(open = 1.1, close = 1.0))
 
-        val result = sut.predict("AAPL", history)
+        val result = sut.predict("XTB", history)
 
         assertEquals(Direction.DOWN, result)
     }
@@ -31,14 +31,14 @@ class MomentumStrategyTest {
     fun `given close equal to open when predict then returns UP`() {
         val history = listOf(marketPrice(open = 1.0, close = 1.0))
 
-        val result = sut.predict("AAPL", history)
+        val result = sut.predict("XTB", history)
 
         assertEquals(Direction.UP, result)
     }
 
     @Test
     fun `given empty history when predict then returns UP as safe default`() {
-        val result = sut.predict("AAPL", emptyList())
+        val result = sut.predict("XTB", emptyList())
 
         assertEquals(Direction.UP, result)
     }
@@ -50,7 +50,7 @@ class MomentumStrategyTest {
             marketPrice(open = 2.0, close = 1.5),  // DOWN — this is last
         )
 
-        val result = sut.predict("AAPL", history)
+        val result = sut.predict("XTB", history)
 
         assertEquals(Direction.DOWN, result)
     }

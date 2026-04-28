@@ -70,7 +70,7 @@ class PredictionApplicationService(
 
     companion object {
         val INSTRUMENTS = listOf(
-            "AAPL", "MSFT", "EUR/USD", "GBP/JPY",
+            "XTB", "CDR", "EUR/USD", "GBP/JPY",
             "BTC/USD", "ETH/USD", "XAU/USD", "USD/JPY",
         )
         private val CRYPTO_INSTRUMENTS = setOf("BTC/USD", "ETH/USD")

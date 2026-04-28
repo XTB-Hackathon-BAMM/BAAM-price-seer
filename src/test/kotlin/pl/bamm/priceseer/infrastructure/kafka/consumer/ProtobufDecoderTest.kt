@@ -30,7 +30,7 @@ class ProtobufDecoderTest {
 
     @Test
     fun `given all 8 instruments when decoded then symbol is preserved`() {
-        val instruments = listOf("AAPL", "MSFT", "EUR/USD", "GBP/JPY", "BTC/USD", "ETH/USD", "XAU/USD", "USD/JPY")
+        val instruments = listOf("XTB", "CDR", "EUR/USD", "GBP/JPY", "BTC/USD", "ETH/USD", "XAU/USD", "USD/JPY")
 
         instruments.forEach { symbol ->
             val result = ProtobufDecoder.decode(marketPriceBytes(symbol = symbol))

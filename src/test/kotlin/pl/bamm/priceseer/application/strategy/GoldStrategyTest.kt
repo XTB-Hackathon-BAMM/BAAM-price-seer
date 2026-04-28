@@ -134,8 +134,8 @@ class GoldStrategyTest {
     @Test
     fun `risk-on stocks both UP during NY session returns DOWN for gold`() {
         val sut = strategyAt(15) // NY session
-        priceRepository.store(marketPrice(symbol = "AAPL", open = 180.0, close = 181.0))
-        priceRepository.store(marketPrice(symbol = "MSFT", open = 420.0, close = 421.0))
+        priceRepository.store(marketPrice(symbol = "XTB", open = 180.0, close = 181.0))
+        priceRepository.store(marketPrice(symbol = "CDR", open = 420.0, close = 421.0))
 
         val history = listOf(
             marketPrice(symbol = "XAU/USD", open = 2500.0, close = 2500.5, high = 2503.0, low = 2497.0),
@@ -146,8 +146,8 @@ class GoldStrategyTest {
     @Test
     fun `risk-off stocks both DOWN during NY session returns UP for gold`() {
         val sut = strategyAt(15)
-        priceRepository.store(marketPrice(symbol = "AAPL", open = 181.0, close = 180.0))
-        priceRepository.store(marketPrice(symbol = "MSFT", open = 421.0, close = 420.0))
+        priceRepository.store(marketPrice(symbol = "XTB", open = 181.0, close = 180.0))
+        priceRepository.store(marketPrice(symbol = "CDR", open = 421.0, close = 420.0))
 
         val history = listOf(
             marketPrice(symbol = "XAU/USD", open = 2500.0, close = 2499.5, high = 2503.0, low = 2497.0),
@@ -158,8 +158,8 @@ class GoldStrategyTest {
     @Test
     fun `risk proxy not used outside NY session`() {
         val sut = strategyAt(10) // 10:00 UTC — outside NY
-        priceRepository.store(marketPrice(symbol = "AAPL", open = 180.0, close = 181.0))
-        priceRepository.store(marketPrice(symbol = "MSFT", open = 420.0, close = 421.0))
+        priceRepository.store(marketPrice(symbol = "XTB", open = 180.0, close = 181.0))
+        priceRepository.store(marketPrice(symbol = "CDR", open = 420.0, close = 421.0))
 
         // Single bullish candle → falls through to pure momentum → UP
         val history = listOf(

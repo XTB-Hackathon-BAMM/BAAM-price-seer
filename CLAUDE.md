@@ -36,7 +36,7 @@ against actual price movements every minute for 8 financial instruments.
 
 ## Instruments (exactly 8)
 
-`AAPL`, `MSFT`, `EUR/USD`, `GBP/JPY`, `BTC/USD`, `ETH/USD`, `XAU/USD`, `USD/JPY`
+`XTB`, `CDR`, `EUR/USD`, `GBP/JPY`, `BTC/USD`, `ETH/USD`, `XAU/USD`, `USD/JPY`
 
 ## Key Business Rules
 

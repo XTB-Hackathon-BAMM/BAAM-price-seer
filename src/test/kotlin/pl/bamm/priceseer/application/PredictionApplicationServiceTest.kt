@@ -98,13 +98,13 @@ class PredictionApplicationServiceTest {
     }
 
     @Test
-    fun `sendPredictions uses default strategy for AAPL and MSFT only`() {
+    fun `sendPredictions uses default strategy for XTB and CDR only`() {
         PredictionApplicationService.INSTRUMENTS.forEach { priceRepository.store(marketPrice(it)) }
         stubAllStrategies()
 
         sut.sendPredictions()
 
-        // 8 total - 2 crypto - 3 forex - 1 gold = 2 default (AAPL, MSFT)
+        // 8 total - 2 crypto - 3 forex - 1 gold = 2 default (XTB, CDR)
         verify(exactly = 2) { defaultStrategy.predict(any(), any()) }
     }
 
@@ -121,7 +121,7 @@ class PredictionApplicationServiceTest {
 
     @Test
     fun `sendPredictions sets team name correctly`() {
-        priceRepository.store(marketPrice("AAPL"))
+        priceRepository.store(marketPrice("XTB"))
         val capturedPredictions = mutableListOf<Prediction>()
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
         every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns true
@@ -146,7 +146,7 @@ class PredictionApplicationServiceTest {
 
     @Test
     fun `sendPredictions skips already sent predictions for same minute`() {
-        priceRepository.store(marketPrice("AAPL"))
+        priceRepository.store(marketPrice("XTB"))
         every { defaultStrategy.predict(any(), any()) } returns Direction.UP
         every { sentPredictionRepository.tryMarkSent(any(), any(), any()) } returns false
 

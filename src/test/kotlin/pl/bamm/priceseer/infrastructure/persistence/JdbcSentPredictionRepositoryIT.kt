@@ -37,18 +37,18 @@ class JdbcSentPredictionRepositoryIT {
 
     @Test
     fun `given existing entry when tryMarkSent with different minute then returns true`() {
-        sut.tryMarkSent("AAPL", Instant.parse("2026-04-27T12:02:00Z"), Direction.UP)
+        sut.tryMarkSent("XTB", Instant.parse("2026-04-27T12:02:00Z"), Direction.UP)
 
-        val result = sut.tryMarkSent("AAPL", Instant.parse("2026-04-27T12:03:00Z"), Direction.UP)
+        val result = sut.tryMarkSent("XTB", Instant.parse("2026-04-27T12:03:00Z"), Direction.UP)
 
         assertTrue(result)
     }
 
     @Test
     fun `given existing entry when tryMarkSent with different symbol then returns true`() {
-        sut.tryMarkSent("MSFT", Instant.parse("2026-04-27T12:04:00Z"), Direction.DOWN)
+        sut.tryMarkSent("CDR", Instant.parse("2026-04-27T12:04:00Z"), Direction.DOWN)
 
-        val result = sut.tryMarkSent("AAPL", Instant.parse("2026-04-27T12:04:00Z"), Direction.DOWN)
+        val result = sut.tryMarkSent("XTB", Instant.parse("2026-04-27T12:04:00Z"), Direction.DOWN)
 
         assertTrue(result)
     }
