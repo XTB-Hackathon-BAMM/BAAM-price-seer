@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAMM-price-seer — Technical Overview</title>
+<style>
+  :root {
+    --domain: #4a90d9;
+    --domain-bg: #e8f0fe;
+    --app: #34a853;
+    --app-bg: #e6f4ea;
+    --infra: #ea8600;
+    --infra-bg: #fef3e0;
+    --external: #9334a8;
+    --external-bg: #f3e8f9;
+    --bg: #f8f9fa;
+    --text: #1a1a2e;
+    --muted: #5f6368;
+    --card-bg: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: white;
+    padding: 2.5rem 2rem;
+    text-align: center;
+  }
+  header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.3rem; }
+  header p { color: #a0aec0; font-size: 1.05rem; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+  h2 {
+    font-size: 1.4rem;
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .diagram-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0 2rem;
+  }
+
+  svg text {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: center;
+    margin: 1.5rem 0;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+  }
+  .legend-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid;
+  }
+
+  .wiring {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 1.25rem;
+    margin: 1rem 0;
+  }
+  .wire-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 1.25rem;
+    border-left: 4px solid;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .wire-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  .wire-card code {
+    background: #f1f3f4;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.88rem;
+  }
+  .wire-card .arrow {
+    color: var(--muted);
+    font-weight: bold;
+    margin: 0 0.25rem;
+  }
+  .wire-card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .wire-card li {
+    padding: 0.25rem 0;
+    font-size: 0.93rem;
+  }
+  .wire-card li::before {
+    content: "→ ";
+    color: var(--muted);
+    font-weight: bold;
+  }
+
+  footer {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid #e2e8f0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔮 BAMM-price-seer</h1>
+  <p>Technical Overview</p>
+</header>
+
+<div class="container">
+
+  <h2>Tech Stack</h2>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin: 1rem 0;">
+    <div class="wire-card" style="border-color: var(--domain);">
+      <h3 style="color: var(--domain);">Backend</h3>
+      <ul>
+        <li><strong>Kotlin</strong> — JVM 17</li>
+        <li><strong>Spring Boot 4</strong> — application framework</li>
+        <li><strong>Spring Kafka</strong> — producer &amp; consumer</li>
+        <li><strong>Protobuf</strong> — binary serialization</li>
+      </ul>
+    </div>
+    <div class="wire-card" style="border-color: var(--app);">
+      <h3 style="color: var(--app);">Persistence &amp; Infra</h3>
+      <ul>
+        <li><strong>PostgreSQL 16</strong> — OHLC &amp; dedup storage</li>
+        <li><strong>Flyway</strong> — schema migrations</li>
+        <li><strong>Docker Compose</strong> — local DB container</li>
+      </ul>
+    </div>
+    <div class="wire-card" style="border-color: var(--infra);">
+      <h3 style="color: var(--infra);">Frontend</h3>
+      <ul>
+        <li><strong>React 19</strong> + TypeScript</li>
+        <li><strong>Vite</strong> — fast build &amp; dev server</li>
+        <li><strong>Recharts</strong> — candlestick charts</li>
+        <li><strong>TanStack Query</strong> — data fetching</li>
+      </ul>
+    </div>
+    <div class="wire-card" style="border-color: var(--external);">
+      <h3 style="color: var(--external);">Testing</h3>
+      <ul>
+        <li><strong>JUnit 5</strong> — test framework</li>
+        <li><strong>MockK</strong> — Kotlin-first mocking</li>
+        <li><strong>Testcontainers</strong> — Kafka &amp; PostgreSQL</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Hexagonal Architecture Diagram</h2>
+
+  <div class="diagram-wrapper">
+    <svg viewBox="0 0 960 780" width="960" height="780" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow-in" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6" fill="#5f6368"/>
+        </marker>
+        <marker id="arrow-domain" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6" fill="var(--domain)"/>
+        </marker>
+        <marker id="arrow-app" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6" fill="var(--app)"/>
+        </marker>
+      </defs>
+
+      <!-- External systems background -->
+      <rect x="0" y="0" width="960" height="780" rx="16" fill="#fafbfc" stroke="#e2e8f0" stroke-width="1"/>
+
+      <!-- INFRASTRUCTURE HEXAGON (outer) -->
+      <polygon points="480,45 810,235 810,545 480,735 150,545 150,235"
+               fill="var(--infra-bg)" stroke="var(--infra)" stroke-width="2.5" opacity="0.9"/>
+      <text x="480" y="80" text-anchor="middle" fill="var(--infra)" font-size="13" font-weight="700" letter-spacing="3">INFRASTRUCTURE</text>
+      <text x="480" y="720" text-anchor="middle" fill="var(--infra)" font-size="11" font-weight="600">(Adapters — implements ports, owns framework annotations)</text>
+
+      <!-- APPLICATION HEXAGON (middle) -->
+      <polygon points="480,135 720,275 720,505 480,645 240,505 240,275"
+               fill="var(--app-bg)" stroke="var(--app)" stroke-width="2.5" opacity="0.9"/>
+      <text x="480" y="165" text-anchor="middle" fill="var(--app)" font-size="13" font-weight="700" letter-spacing="3">APPLICATION</text>
+      <text x="480" y="632" text-anchor="middle" fill="var(--app)" font-size="11" font-weight="600">(Use cases — orchestrates domain, depends only on ports)</text>
+
+      <!-- DOMAIN HEXAGON (core) -->
+      <polygon points="480,235 620,315 620,465 480,545 340,465 340,315"
+               fill="var(--domain-bg)" stroke="var(--domain)" stroke-width="3" opacity="0.95"/>
+      <text x="480" y="265" text-anchor="middle" fill="var(--domain)" font-size="14" font-weight="800" letter-spacing="3">DOMAIN</text>
+      <text x="480" y="282" text-anchor="middle" fill="var(--domain)" font-size="10" font-weight="600">(Pure Kotlin — zero framework imports)</text>
+
+      <!-- Domain: Models -->
+      <text x="480" y="315" text-anchor="middle" fill="var(--text)" font-size="12" font-weight="700">Models</text>
+      <text x="480" y="335" text-anchor="middle" fill="var(--muted)" font-size="11">MarketPrice · Prediction · Direction</text>
+
+      <!-- Domain: Ports (interfaces) -->
+      <text x="480" y="375" text-anchor="middle" fill="var(--text)" font-size="12" font-weight="700">Ports (interfaces)</text>
+
+      <!-- Port boxes inside domain hexagon -->
+      <rect x="355" y="390" width="115" height="28" rx="5" fill="white" stroke="var(--domain)" stroke-width="1.5"/>
+      <text x="412" y="409" text-anchor="middle" fill="var(--domain)" font-size="10" font-weight="600">PriceRepository</text>
+
+      <rect x="490" y="390" width="115" height="28" rx="5" fill="white" stroke="var(--domain)" stroke-width="1.5"/>
+      <text x="547" y="409" text-anchor="middle" fill="var(--domain)" font-size="10" font-weight="600">PredictionPort</text>
+
+      <rect x="355" y="430" width="115" height="28" rx="5" fill="white" stroke="var(--domain)" stroke-width="1.5"/>
+      <text x="412" y="449" text-anchor="middle" fill="var(--domain)" font-size="10" font-weight="600">PredictionStrategy</text>
+
+      <rect x="490" y="430" width="115" height="28" rx="5" fill="white" stroke="var(--domain)" stroke-width="1.5"/>
+      <text x="547" y="449" text-anchor="middle" fill="var(--domain)" font-size="10" font-weight="600">SentPredictionRepo</text>
+
+      <!-- APPLICATION layer components -->
+      <!-- PredictionApplicationService (top center of app ring) -->
+      <rect x="370" y="190" width="220" height="32" rx="6" fill="white" stroke="var(--app)" stroke-width="2"/>
+      <text x="480" y="211" text-anchor="middle" fill="var(--app)" font-size="11" font-weight="700">PredictionApplicationService</text>
+
+      <!-- Strategies (left and right of app ring) -->
+      <rect x="250" y="330" width="72" height="54" rx="6" fill="white" stroke="var(--app)" stroke-width="1.5"/>
+      <text x="286" y="352" text-anchor="middle" fill="var(--app)" font-size="10" font-weight="600">Crypto</text>
+      <text x="286" y="365" text-anchor="middle" fill="var(--app)" font-size="10" font-weight="600">Strategy</text>
+
+      <rect x="250" y="400" width="72" height="54" rx="6" fill="white" stroke="var(--app)" stroke-width="1.5"/>
+      <text x="286" y="422" text-anchor="middle" fill="var(--app)" font-size="10" font-weight="600">Forex</text>
+      <text x="286" y="435" text-anchor="middle" fill="var(--app)" font-size="10" font-weight="600">Strategy</text>
+
+      <rect x="250" y="470" width="72" height="54" rx="6" fill="white" stroke="var(--app)" stroke-width="1.5"/>
+      <text x="286" y="492" text-anchor="middle" fill="var(--app)" font-size="10" font-weight="600">Gold</text>
+      <text x="286" y="505" text-anchor="middle" fill="var(--app)" font-size="10" font-weight="600">Strategy</text>
+
+      <rect x="638" y="340" width="72" height="54" rx="6" fill="white" stroke="var(--app)" stroke-width="1.5"/>
+      <text x="674" y="362" text-anchor="middle" fill="var(--app)" font-size="10" font-weight="600">Stock</text>
+      <text x="674" y="375" text-anchor="middle" fill="var(--app)" font-size="10" font-weight="600">Strategy</text>
+
+      <rect x="638" y="410" width="72" height="54" rx="6" fill="white" stroke="var(--app)" stroke-width="1.5"/>
+      <text x="674" y="432" text-anchor="middle" fill="var(--app)" font-size="10" font-weight="600">Momentum</text>
+      <text x="674" y="445" text-anchor="middle" fill="var(--app)" font-size="10" font-weight="600">Strategy</text>
+
+      <!-- Strategies implement PredictionStrategy port arrows -->
+      <line x1="322" y1="357" x2="355" y2="440" stroke="var(--app)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-app)" opacity="0.6"/>
+      <line x1="322" y1="427" x2="355" y2="444" stroke="var(--app)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-app)" opacity="0.6"/>
+      <line x1="322" y1="497" x2="355" y2="448" stroke="var(--app)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-app)" opacity="0.6"/>
+      <line x1="638" y1="367" x2="470" y2="444" stroke="var(--app)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-app)" opacity="0.6"/>
+      <line x1="638" y1="437" x2="470" y2="444" stroke="var(--app)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-app)" opacity="0.6"/>
+
+      <!-- Service to ports arrows -->
+      <line x1="480" y1="222" x2="480" y2="295" stroke="var(--app)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-app)" opacity="0.7"/>
+
+      <!-- INFRASTRUCTURE adapters -->
+      <!-- Left side: Inbound (driving) -->
+      <text x="190" y="150" text-anchor="middle" fill="var(--infra)" font-size="11" font-weight="700">DRIVING ADAPTERS</text>
+
+      <!-- Kafka Consumer -->
+      <rect x="165" y="168" width="140" height="36" rx="6" fill="white" stroke="var(--infra)" stroke-width="2"/>
+      <text x="235" y="191" text-anchor="middle" fill="var(--infra)" font-size="11" font-weight="600">MarketPriceConsumer</text>
+
+      <!-- Scheduler -->
+      <rect x="165" y="216" width="140" height="36" rx="6" fill="white" stroke="var(--infra)" stroke-width="2"/>
+      <text x="235" y="239" text-anchor="middle" fill="var(--infra)" font-size="11" font-weight="600">PredictionScheduler</text>
+
+      <!-- Right side: Outbound (driven) -->
+      <text x="770" y="150" text-anchor="middle" fill="var(--infra)" font-size="11" font-weight="700">DRIVEN ADAPTERS</text>
+
+      <!-- Kafka Producer -->
+      <rect x="700" y="168" width="140" height="36" rx="6" fill="white" stroke="var(--infra)" stroke-width="2"/>
+      <text x="770" y="191" text-anchor="middle" fill="var(--infra)" font-size="11" font-weight="600">PredictionProducer</text>
+
+      <!-- JDBC Price Repo -->
+      <rect x="700" y="216" width="140" height="36" rx="6" fill="white" stroke="var(--infra)" stroke-width="2"/>
+      <text x="770" y="239" text-anchor="middle" fill="var(--infra)" font-size="11" font-weight="600">JdbcPriceRepository</text>
+
+      <!-- JDBC SentPrediction Repo -->
+      <rect x="700" y="264" width="140" height="36" rx="6" fill="white" stroke="var(--infra)" stroke-width="2"/>
+      <text x="770" y="287" text-anchor="middle" fill="var(--infra)" font-size="11" font-weight="600">JdbcSentPredictionRepo</text>
+
+      <!-- InMemory variants -->
+      <rect x="700" y="560" width="140" height="36" rx="6" fill="white" stroke="var(--infra)" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="770" y="583" text-anchor="middle" fill="var(--infra)" font-size="10" font-weight="600">InMemoryPriceRepo</text>
+
+      <rect x="700" y="608" width="140" height="36" rx="6" fill="white" stroke="var(--infra)" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="770" y="631" text-anchor="middle" fill="var(--infra)" font-size="10" font-weight="600">InMemorySentPredRepo</text>
+
+      <text x="770" y="660" text-anchor="middle" fill="var(--muted)" font-size="9" font-style="italic">@Profile("in-memory")</text>
+
+      <!-- Protobuf Encoder/Decoder -->
+      <rect x="165" y="560" width="120" height="30" rx="6" fill="white" stroke="var(--infra)" stroke-width="1.5"/>
+      <text x="225" y="580" text-anchor="middle" fill="var(--infra)" font-size="10" font-weight="600">ProtobufDecoder</text>
+
+      <rect x="165" y="600" width="120" height="30" rx="6" fill="white" stroke="var(--infra)" stroke-width="1.5"/>
+      <text x="225" y="620" text-anchor="middle" fill="var(--infra)" font-size="10" font-weight="600">ProtobufEncoder</text>
+
+      <!-- Driving adapter arrows (into application) -->
+      <line x1="305" y1="186" x2="370" y2="200" stroke="var(--infra)" stroke-width="1.5" marker-end="url(#arrow-in)"/>
+      <line x1="305" y1="234" x2="370" y2="210" stroke="var(--infra)" stroke-width="1.5" marker-end="url(#arrow-in)"/>
+
+      <!-- Driven adapter arrows (implement ports) -->
+      <line x1="700" y1="186" x2="605" y2="404" stroke="var(--infra)" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow-in)" opacity="0.6"/>
+      <line x1="700" y1="234" x2="470" y2="404" stroke="var(--infra)" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow-in)" opacity="0.6"/>
+      <line x1="700" y1="282" x2="605" y2="444" stroke="var(--infra)" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow-in)" opacity="0.6"/>
+
+      <!-- EXTERNAL SYSTEMS -->
+      <!-- Kafka (left) -->
+      <rect x="15" y="155" width="130" height="66" rx="8" fill="var(--external-bg)" stroke="var(--external)" stroke-width="2"/>
+      <text x="80" y="180" text-anchor="middle" fill="var(--external)" font-size="12" font-weight="700">Apache Kafka</text>
+      <text x="80" y="196" text-anchor="middle" fill="var(--muted)" font-size="9">market-prices (in)</text>
+      <text x="80" y="210" text-anchor="middle" fill="var(--muted)" font-size="9">predictions (out)</text>
+
+      <!-- Oracle (top) -->
+      <rect x="380" y="0" width="200" height="35" rx="8" fill="var(--external-bg)" stroke="var(--external)" stroke-width="2"/>
+      <text x="480" y="22" text-anchor="middle" fill="var(--external)" font-size="12" font-weight="700">Oracle Scoring Server</text>
+
+      <!-- PostgreSQL (right) -->
+      <rect x="860" y="210" width="90" height="55" rx="8" fill="var(--external-bg)" stroke="var(--external)" stroke-width="2"/>
+      <text x="905" y="234" text-anchor="middle" fill="var(--external)" font-size="12" font-weight="700">PostgreSQL</text>
+      <text x="905" y="252" text-anchor="middle" fill="var(--muted)" font-size="9">port 15432</text>
+
+      <!-- External connections -->
+      <line x1="145" y1="188" x2="165" y2="186" stroke="var(--external)" stroke-width="1.5" marker-end="url(#arrow-in)"/>
+      <line x1="840" y1="186" x2="860" y2="230" stroke="var(--external)" stroke-width="1.5" marker-end="url(#arrow-in)"/>
+      <line x1="840" y1="234" x2="860" y2="237" stroke="var(--external)" stroke-width="1.5" marker-end="url(#arrow-in)"/>
+      <line x1="840" y1="282" x2="860" y2="245" stroke="var(--external)" stroke-width="1.5" marker-end="url(#arrow-in)"/>
+
+      <!-- Dependency rule annotation -->
+      <text x="480" y="765" text-anchor="middle" fill="var(--muted)" font-size="11" font-weight="600">
+        Dependency Rule: all arrows point inward — infrastructure depends on domain, never the reverse
+      </text>
+    </svg>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-swatch" style="background: var(--domain-bg); border-color: var(--domain);"></div>
+      Domain (models + port interfaces)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background: var(--app-bg); border-color: var(--app);"></div>
+      Application (use cases + strategies)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background: var(--infra-bg); border-color: var(--infra);"></div>
+      Infrastructure (adapters)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background: var(--external-bg); border-color: var(--external);"></div>
+      External Systems
+    </div>
+    <div class="legend-item">
+      <svg width="30" height="12"><line x1="0" y1="6" x2="30" y2="6" stroke="#5f6368" stroke-width="1.5" stroke-dasharray="4,3"/></svg>
+      implements (port)
+    </div>
+    <div class="legend-item">
+      <svg width="30" height="12"><line x1="0" y1="6" x2="30" y2="6" stroke="#5f6368" stroke-width="1.5"/></svg>
+      calls / depends on
+    </div>
+  </div>
+
+  <h2>DDD / Hexagonal Architecture Overview</h2>
+
+  <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 12px; padding: 2rem 2.5rem; margin: 1rem 0 2rem; color: #e2e8f0;">
+    <p style="font-size: 1.05rem; color: #a0aec0; margin-bottom: 1.25rem;">
+      The following key properties prove that BAMM-price-seer follows DDD and Hexagonal Architecture (Ports &amp; Adapters) principles:
+    </p>
+    <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 1rem;">
+      <li style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="color: #4a90d9; font-size: 1.2rem; flex-shrink: 0;">&#x2B22;</span>
+        <div>
+          <strong style="color: #ffffff;">Framework-free domain core</strong>
+          <span style="color: #a0aec0;"> — The <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">domain/</code> package contains only plain Kotlin data classes, enums, and interfaces. It has <em>zero</em> imports from Spring, Kafka, JDBC, or any other framework — making business logic portable and testable in isolation.</span>
+        </div>
+      </li>
+      <li style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="color: #4a90d9; font-size: 1.2rem; flex-shrink: 0;">&#x2B22;</span>
+        <div>
+          <strong style="color: #ffffff;">Explicit port interfaces define the system boundary</strong>
+          <span style="color: #a0aec0;"> — Four domain-defined ports (<code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">PriceRepository</code>, <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">PredictionPort</code>, <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">PredictionStrategy</code>, <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">SentPredictionRepository</code>) decouple the application from any specific technology choice.</span>
+        </div>
+      </li>
+      <li style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="color: #4a90d9; font-size: 1.2rem; flex-shrink: 0;">&#x2B22;</span>
+        <div>
+          <strong style="color: #ffffff;">Dependency Inversion — all arrows point inward</strong>
+          <span style="color: #a0aec0;"> — Infrastructure adapters (<code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">JdbcPriceRepository</code>, <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">PredictionProducer</code>) implement domain interfaces. The domain and application layers never reference infrastructure classes — dependencies flow exclusively from outer layers to inner layers.</span>
+        </div>
+      </li>
+      <li style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="color: #34a853; font-size: 1.2rem; flex-shrink: 0;">&#x2B22;</span>
+        <div>
+          <strong style="color: #ffffff;">Driving vs. Driven adapter separation</strong>
+          <span style="color: #a0aec0;"> — Inbound (driving) adapters like <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">MarketPriceConsumer</code> and <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">PredictionScheduler</code> call into the application service. Outbound (driven) adapters like <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">PredictionProducer</code> and JDBC repositories are injected via Spring DI and implement domain ports.</span>
+        </div>
+      </li>
+      <li style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="color: #34a853; font-size: 1.2rem; flex-shrink: 0;">&#x2B22;</span>
+        <div>
+          <strong style="color: #ffffff;">Application service orchestrates through ports only</strong>
+          <span style="color: #a0aec0;"> — <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">PredictionApplicationService</code> depends exclusively on domain port interfaces. It has no direct knowledge of Kafka, JDBC, or any specific adapter implementation.</span>
+        </div>
+      </li>
+      <li style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="color: #ea8600; font-size: 1.2rem; flex-shrink: 0;">&#x2B22;</span>
+        <div>
+          <strong style="color: #ffffff;">Adapters are swappable at runtime</strong>
+          <span style="color: #a0aec0;"> — Repository implementations can be swapped between JDBC and in-memory variants via Spring <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">@Profile</code> without modifying a single line in the domain or application layers — proving true pluggability.</span>
+        </div>
+      </li>
+      <li style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="color: #ea8600; font-size: 1.2rem; flex-shrink: 0;">&#x2B22;</span>
+        <div>
+          <strong style="color: #ffffff;">Strategy Pattern as a domain port</strong>
+          <span style="color: #a0aec0;"> — <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">PredictionStrategy</code> is defined in the domain layer and has five application-layer implementations (Crypto, Forex, Gold, Stock, Momentum), each encapsulating instrument-specific logic without infrastructure leakage.</span>
+        </div>
+      </li>
+      <li style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="color: #9334a8; font-size: 1.2rem; flex-shrink: 0;">&#x2B22;</span>
+        <div>
+          <strong style="color: #ffffff;">Ubiquitous language throughout</strong>
+          <span style="color: #a0aec0;"> — Domain terms (<code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">MarketPrice</code>, <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">Prediction</code>, <code style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #93c5fd;">Direction</code>) are used consistently across all layers — from Kafka messages through strategy interfaces to database tables — reinforcing a shared domain vocabulary.</span>
+        </div>
+      </li>
+      <li style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="color: #9334a8; font-size: 1.2rem; flex-shrink: 0;">&#x2B22;</span>
+        <div>
+          <strong style="color: #ffffff;">Testability by design</strong>
+          <span style="color: #a0aec0;"> — The layered architecture enables pure unit tests for domain and application logic (MockK, no Spring context) alongside full integration tests with Testcontainers — without modifying business code. Test boundaries mirror architectural boundaries.</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <h2>Ports &amp; Adapters Wiring</h2>
+
+  <div class="wiring" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="wire-card" style="border-color: var(--domain);">
+      <h3 style="color: var(--domain);">🔵 Domain Ports (interfaces)</h3>
+      <ul>
+        <li><code>PriceRepository</code> — store, history, latest</li>
+        <li><code>PredictionPort</code> — send prediction to Kafka</li>
+        <li><code>PredictionStrategy</code> — predict direction from history</li>
+        <li><code>SentPredictionRepository</code> — dedup per symbol/minute</li>
+      </ul>
+    </div>
+
+    <div class="wire-card" style="border-color: var(--app);">
+      <h3 style="color: var(--app);">🟢 Application Layer</h3>
+      <ul>
+        <li><code>PredictionApplicationService</code> — orchestrates price ingestion + prediction dispatch</li>
+        <li><code>CryptoStrategy</code> <span class="arrow">→</span> implements <code>PredictionStrategy</code></li>
+        <li><code>ForexStrategy</code> <span class="arrow">→</span> implements <code>PredictionStrategy</code></li>
+        <li><code>GoldStrategy</code> <span class="arrow">→</span> implements <code>PredictionStrategy</code></li>
+        <li><code>StockStrategy</code> <span class="arrow">→</span> implements <code>PredictionStrategy</code></li>
+        <li><code>MomentumStrategy</code> <span class="arrow">→</span> implements <code>PredictionStrategy</code></li>
+      </ul>
+    </div>
+
+    <div class="wire-card" style="border-color: var(--infra);">
+      <h3 style="color: var(--infra);">🟠 Driving Adapters (inbound)</h3>
+      <ul>
+        <li><code>MarketPriceConsumer</code> — Kafka listener, calls <code>onPriceReceived()</code></li>
+        <li><code>PredictionScheduler</code> — cron trigger, calls <code>sendPredictions()</code></li>
+      </ul>
+    </div>
+
+    <div class="wire-card" style="border-color: var(--infra);">
+      <h3 style="color: var(--infra);">🟠 Driven Adapters (outbound)</h3>
+      <ul>
+        <li><code>PredictionProducer</code> <span class="arrow">→</span> implements <code>PredictionPort</code></li>
+        <li><code>JdbcPriceRepository</code> <span class="arrow">→</span> implements <code>PriceRepository</code></li>
+        <li><code>JdbcSentPredictionRepo</code> <span class="arrow">→</span> implements <code>SentPredictionRepository</code></li>
+        <li><code>InMemoryPriceRepo</code> <span class="arrow">→</span> implements <code>PriceRepository</code> <em>(in-memory profile)</em></li>
+        <li><code>InMemorySentPredRepo</code> <span class="arrow">→</span> implements <code>SentPredictionRepository</code> <em>(in-memory profile)</em></li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Tracked Instruments &amp; Prediction Strategies</h2>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin: 1rem 0;">
+    <div class="wire-card" style="border-color: var(--app);">
+      <h3 style="color: var(--app);">&#x1F4B0; Crypto — <code>BTC/USD</code>, <code>ETH/USD</code></h3>
+      <ul>
+        <li>Volatility regime detection</li>
+        <li>ATR-filtered momentum + RSI</li>
+        <li>Doji candle detection</li>
+        <li>BTC as leading indicator for ETH</li>
+      </ul>
+    </div>
+    <div class="wire-card" style="border-color: var(--app);">
+      <h3 style="color: var(--app);">&#x1F4B1; Forex — <code>EUR/USD</code>, <code>GBP/JPY</code>, <code>USD/JPY</code></h3>
+      <ul>
+        <li>Per-pair sub-strategies</li>
+        <li>Session awareness (Asian / NY)</li>
+        <li>Counter-trend logic</li>
+        <li>Stock-market risk proxies</li>
+      </ul>
+    </div>
+    <div class="wire-card" style="border-color: var(--app);">
+      <h3 style="color: var(--app);">&#x1F947; Gold — <code>XAU/USD</code></h3>
+      <ul>
+        <li>PM fix counter-trend</li>
+        <li>SMA trend filter</li>
+        <li>Risk-off proxy during NY session</li>
+      </ul>
+    </div>
+    <div class="wire-card" style="border-color: var(--app);">
+      <h3 style="color: var(--app);">&#x1F4C8; Stocks — <code>XTB</code>, <code>CDR</code></h3>
+      <ul>
+        <li>Session-phase logic</li>
+        <li>Opening gap detection</li>
+        <li>Morning cross-signal</li>
+        <li>Lunch mean-reversion &amp; closing momentum</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 40%, #16213e 100%); border-radius: 16px; padding: 3rem 2.5rem 2.5rem; margin: 2.5rem 0 1rem; color: #e2e8f0; text-align: center; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #4a90d9, #34a853, #ea8600, #9334a8);"></div>
+
+    <div style="display: flex; justify-content: center; gap: 0.15rem; margin-bottom: 0.5rem;">
+      <span style="font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, #4a90d9, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px;">B</span>
+      <span style="font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, #34a853, #4ade80); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px;">A</span>
+      <span style="font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, #ea8600, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px;">M</span>
+      <span style="font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, #9334a8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px;">M</span>
+    </div>
+    <p style="color: #a0aec0; font-size: 0.95rem; margin-bottom: 2rem; letter-spacing: 1px;">Built with AI at the XTB Hackathon</p>
+
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem; margin-bottom: 2rem;">
+      <div style="background: rgba(74,144,217,0.1); border: 1px solid rgba(74,144,217,0.3); border-radius: 12px; padding: 1.25rem 1.5rem; min-width: 190px; transition: transform 0.2s;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #4a90d9, #60a5fa); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.6rem; font-size: 1.3rem; font-weight: 800; color: #fff;">B</div>
+        <strong style="color: #ffffff; font-size: 1rem;">Bartlomiej Perkowski</strong>
+        <div style="color: #93c5fd; font-size: 0.85rem; margin-top: 0.3rem;">bartlomiej-perkowski-xtb</div>
+      </div>
+      <div style="background: rgba(52,168,83,0.1); border: 1px solid rgba(52,168,83,0.3); border-radius: 12px; padding: 1.25rem 1.5rem; min-width: 190px; transition: transform 0.2s;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #34a853, #4ade80); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.6rem; font-size: 1.3rem; font-weight: 800; color: #fff;">A</div>
+        <strong style="color: #ffffff; font-size: 1rem;">Anastazja Trusinska</strong>
+        <div style="color: #93c5fd; font-size: 0.85rem; margin-top: 0.3rem;">anastazja-trusinska-xtb</div>
+      </div>
+      <div style="background: rgba(234,134,0,0.1); border: 1px solid rgba(234,134,0,0.3); border-radius: 12px; padding: 1.25rem 1.5rem; min-width: 190px; transition: transform 0.2s;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #ea8600, #fbbf24); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.6rem; font-size: 1.3rem; font-weight: 800; color: #fff;">M</div>
+        <strong style="color: #ffffff; font-size: 1rem;">Michal Kusmidrowicz</strong>
+        <div style="color: #93c5fd; font-size: 0.85rem; margin-top: 0.3rem;">ninjarlz</div>
+      </div>
+      <div style="background: rgba(147,52,168,0.1); border: 1px solid rgba(147,52,168,0.3); border-radius: 12px; padding: 1.25rem 1.5rem; min-width: 190px; transition: transform 0.2s;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #9334a8, #c084fc); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.6rem; font-size: 1.3rem; font-weight: 800; color: #fff;">M</div>
+        <strong style="color: #ffffff; font-size: 1rem;">Michal Bareja</strong>
+        <div style="color: #93c5fd; font-size: 0.85rem; margin-top: 0.3rem;">jrmichael</div>
+      </div>
+    </div>
+
+    <p style="color: #a0aec0; font-size: 0.9rem; max-width: 640px; margin: 0 auto; line-height: 1.7;">
+      The team name <strong style="color: #ffffff; font-size: 1rem;">BAMM</strong> comes from the first letters of the authors' names.
+      The project was vibe-coded end-to-end with agentic AI assistants — from architecture decisions
+      through strategy implementation to the React dashboard.
+    </p>
+  </div>
+
+</div>
+
+<footer>
+  BAMM-price-seer · XTB Hackathon 2026 · Generated architecture overview
+</footer>
+
+</body>
+</html>
