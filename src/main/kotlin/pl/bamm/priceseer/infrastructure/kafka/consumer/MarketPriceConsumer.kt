@@ -6,12 +6,22 @@ import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import pl.bamm.priceseer.application.PredictionApplicationService
 
+/**
+ * Kafka consumer that listens to the {@code market-prices} topic, deserializes
+ * Protobuf-encoded candles, and delegates them to the application service.
+ */
 @Component
 class MarketPriceConsumer(
     private val predictionApplicationService: PredictionApplicationService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * Processes a single Kafka record from the {@code market-prices} topic.
+     * Malformed Protobuf bytes are logged and silently dropped.
+     *
+     * @param record the raw Kafka consumer record
+     */
     @KafkaListener(topics = ["market-prices"], groupId = "priceseer-consumer")
     fun consume(record: ConsumerRecord<String, ByteArray>) {
         runCatching { ProtobufDecoder.decode(record.value()) }

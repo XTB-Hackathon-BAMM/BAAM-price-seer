@@ -7,12 +7,17 @@ import pl.bamm.priceseer.domain.port.SentPredictionRepository
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Thread-safe in-memory implementation of {@link SentPredictionRepository} backed by
+ * {@link ConcurrentHashMap}. Active only under the {@code in-memory} Spring profile.
+ */
 @Profile("in-memory")
 @Component
 class InMemorySentPredictionRepository : SentPredictionRepository {
 
     private val sent = ConcurrentHashMap<String, Unit>()
 
+    /** {@inheritDoc} */
     override fun tryMarkSent(symbol: String, minute: Instant, direction: Direction): Boolean =
         sent.putIfAbsent("$symbol:${minute.epochSecond}", Unit) == null
 }

@@ -6,12 +6,18 @@ import pl.bamm.priceseer.domain.model.MarketPrice
 import pl.bamm.priceseer.domain.port.PriceRepository
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Thread-safe in-memory implementation of {@link PriceRepository} backed by
+ * {@link ConcurrentHashMap} with a fixed-size {@link ArrayDeque} per symbol.
+ * Active only under the {@code in-memory} Spring profile.
+ */
 @Profile("in-memory")
 @Component
 class InMemoryPriceRepository : PriceRepository {
 
     private val histories = ConcurrentHashMap<String, ArrayDeque<MarketPrice>>()
 
+    /** {@inheritDoc} */
     override fun store(price: MarketPrice) {
         val history = histories.computeIfAbsent(price.symbol) { ArrayDeque() }
         synchronized(history) {
@@ -20,11 +26,13 @@ class InMemoryPriceRepository : PriceRepository {
         }
     }
 
+    /** {@inheritDoc} */
     override fun history(symbol: String): List<MarketPrice> {
         val history = histories[symbol] ?: return emptyList()
         return synchronized(history) { history.toList() }
     }
 
+    /** {@inheritDoc} */
     override fun latest(symbol: String): MarketPrice? {
         val history = histories[symbol] ?: return null
         return synchronized(history) { history.lastOrNull() }

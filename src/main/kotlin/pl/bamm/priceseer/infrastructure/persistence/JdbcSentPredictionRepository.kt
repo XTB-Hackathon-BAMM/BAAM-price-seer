@@ -7,10 +7,17 @@ import pl.bamm.priceseer.domain.model.Direction
 import pl.bamm.priceseer.domain.port.SentPredictionRepository
 import java.time.Instant
 
+/**
+ * PostgreSQL-backed implementation of {@link SentPredictionRepository} using Spring
+ * {@link JdbcTemplate}. Uses upsert ({@code ON CONFLICT DO NOTHING}) to atomically
+ * enforce the one-prediction-per-symbol-per-minute constraint.
+ * Active when the {@code in-memory} profile is not set.
+ */
 @Profile("!in-memory")
 @Repository
 class JdbcSentPredictionRepository(private val jdbc: JdbcTemplate) : SentPredictionRepository {
 
+    /** {@inheritDoc} */
     override fun tryMarkSent(symbol: String, minute: Instant, direction: Direction): Boolean {
         val rows = jdbc.update(
             """

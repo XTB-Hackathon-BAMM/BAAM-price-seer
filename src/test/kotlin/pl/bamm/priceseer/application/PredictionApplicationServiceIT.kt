@@ -81,6 +81,18 @@ class PredictionApplicationServiceIT {
         consumer.close()
     }
 
+    /**
+     * Test purpose - Verify that {@link PredictionApplicationService#onPriceReceived} persists
+     * the received {@link MarketPrice} in the JDBC-backed {@link PriceRepository}.
+     *
+     * <p>Test data - Single {@link MarketPrice} for symbol {@code "BTC/USD"} with
+     * {@code open=50000.0} and {@code close=51000.0}.
+     *
+     * <p>Test expected result - Repository history for {@code "BTC/USD"} contains exactly one
+     * entry with matching symbol, open, and close values.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `onPriceReceived stores price in database`() {
         val price = marketPrice("BTC/USD", open = 50_000.0, close = 51_000.0)
@@ -94,6 +106,18 @@ class PredictionApplicationServiceIT {
         assertEquals(51_000.0, history.first().close)
     }
 
+    /**
+     * Test purpose - Verify that {@link PredictionApplicationService#sendPredictions} produces
+     * Protobuf-encoded predictions to the {@code predictions} Kafka topic for all 8 instruments.
+     *
+     * <p>Test data - All 8 instruments stored in the JDBC repository via
+     * {@link PredictionApplicationService#onPriceReceived}.
+     *
+     * <p>Test expected result - 8 Protobuf records appear on the {@code predictions} topic,
+     * one per instrument, each with non-blank team, symbol, and timestamp fields.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `sendPredictions sends to Kafka for all instruments`() {
         PredictionApplicationService.INSTRUMENTS.forEach { symbol ->
@@ -114,6 +138,19 @@ class PredictionApplicationServiceIT {
         }
     }
 
+    /**
+     * Test purpose - Verify that {@link PredictionApplicationService#sendPredictions} does not
+     * insert duplicate rows into {@code sent_prediction} when invoked twice within the same
+     * minute, confirming the JDBC-backed deduplication mechanism.
+     *
+     * <p>Test data - All 8 instruments stored in the repository, {@code sendPredictions()}
+     * invoked twice in succession within the same minute.
+     *
+     * <p>Test expected result - The {@code sent_prediction} table contains exactly 8 rows
+     * (one per instrument), not 16.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `sendPredictions skips duplicate within same minute`() {
         PredictionApplicationService.INSTRUMENTS.forEach { symbol ->
@@ -130,6 +167,19 @@ class PredictionApplicationServiceIT {
         assertEquals(8, rowCount)
     }
 
+    /**
+     * Test purpose - Verify that {@link PredictionApplicationService#sendPredictions} defaults
+     * to {@code Direction.UP} for all instruments when the JDBC repository contains no price
+     * history.
+     *
+     * <p>Test data - Empty {@code market_price} table, no prior calls to
+     * {@link PredictionApplicationService#onPriceReceived}.
+     *
+     * <p>Test expected result - 8 predictions appear on the {@code predictions} Kafka topic,
+     * all with {@code Direction.UP}.
+     *
+     * <p>Test type - Negative.
+     */
     @Test
     fun `sendPredictions defaults to UP when no history`() {
         sut.sendPredictions()
@@ -142,6 +192,21 @@ class PredictionApplicationServiceIT {
         }
     }
 
+    /**
+     * Test purpose - Verify the full end-to-end flow: a Protobuf-encoded {@link MarketPrice}
+     * published to the {@code market-prices} Kafka topic is consumed by
+     * {@link MarketPriceConsumer}, stored via {@link PredictionApplicationService#onPriceReceived},
+     * and then {@link PredictionApplicationService#sendPredictions} produces a corresponding
+     * prediction to the {@code predictions} topic.
+     *
+     * <p>Test data - Protobuf-encoded {@link MarketPrice} for symbol {@code "XTB"} with
+     * {@code open=100.0} and {@code close=110.0}, published to {@code market-prices}.
+     *
+     * <p>Test expected result - A prediction for symbol {@code "XTB"} with a non-blank team
+     * name appears on the {@code predictions} Kafka topic.
+     *
+     * <p>Test type - Positive.
+     */
     @Test
     fun `end-to-end Kafka price in then prediction out`() {
         val bytes = marketPriceBytes(symbol = "XTB", open = 100.0, close = 110.0)

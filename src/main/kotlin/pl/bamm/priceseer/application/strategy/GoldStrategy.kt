@@ -10,12 +10,20 @@ import java.time.ZoneOffset
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+/**
+ * Prediction strategy for the gold instrument ({@code XAU/USD}).
+ *
+ * <p>Combines volatility regime detection, PM fix counter-trend logic (14:00–14:05 UTC),
+ * ATR-filtered momentum, RSI signals, a stock-market risk proxy during the New York session,
+ * and SMA trend filtering as a final fallback.
+ */
 @Component("gold")
 class GoldStrategy(
     private val priceRepository: PriceRepository,
     private val clock: Clock = Clock.systemUTC(),
 ) : PredictionStrategy {
 
+    /** {@inheritDoc} */
     override fun predict(symbol: String, history: List<MarketPrice>): Direction {
         if (history.isEmpty()) return Direction.UP
 

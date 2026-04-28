@@ -14,6 +14,10 @@ import pl.bamm.priceseer.domain.port.SentPredictionRepository
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
+/**
+ * Application service that orchestrates price ingestion, strategy selection, and
+ * prediction dispatch for all tracked instruments.
+ */
 @Service
 class PredictionApplicationService(
     private val priceRepository: PriceRepository,
@@ -28,11 +32,21 @@ class PredictionApplicationService(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * Stores a received {@link MarketPrice} candle in the price repository.
+     *
+     * @param price the market price candle received from Kafka
+     */
     fun onPriceReceived(price: MarketPrice) {
         priceRepository.store(price)
         log.info("Stored price: symbol={} close={} ts={}", price.symbol, price.close, price.timestamp)
     }
 
+    /**
+     * Sends one directional prediction per instrument for the current minute.
+     * Selects the appropriate {@link PredictionStrategy} for each symbol and
+     * skips instruments that already have a prediction recorded for the current minute.
+     */
     fun sendPredictions() {
         val currentMinute = Instant.now().truncatedTo(ChronoUnit.MINUTES)
         log.info("Sending predictions for minute={}", currentMinute)

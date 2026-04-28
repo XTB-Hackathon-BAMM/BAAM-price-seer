@@ -9,12 +9,21 @@ import java.time.Clock
 import java.time.ZoneOffset
 import kotlin.math.abs
 
+/**
+ * Prediction strategy for stock instruments ({@code XTB}, {@code CDR}).
+ *
+ * <p>Splits the trading session (13:30–20:00 UTC) into phases: opening gap,
+ * morning (cross-signal + RSI + ATR momentum), lunch mean-reversion, and
+ * closing SMA momentum. Outside session hours or during flat price action,
+ * defaults to {@link Direction#UP}.
+ */
 @Component("stock")
 class StockStrategy(
     private val priceRepository: PriceRepository,
     private val clock: Clock = Clock.systemUTC(),
 ) : PredictionStrategy {
 
+    /** {@inheritDoc} */
     override fun predict(symbol: String, history: List<MarketPrice>): Direction {
         if (history.isEmpty()) return Direction.UP
 

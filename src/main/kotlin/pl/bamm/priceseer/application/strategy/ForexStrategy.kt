@@ -10,12 +10,20 @@ import java.time.ZoneOffset
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+/**
+ * Prediction strategy for forex instruments ({@code EUR/USD}, {@code GBP/JPY}, {@code USD/JPY}).
+ *
+ * <p>Each pair has a tailored sub-strategy: EUR/USD uses RSI and small-candle filtering,
+ * GBP/JPY uses session-aware ATR momentum, and USD/JPY adds counter-trend logic
+ * plus a stock-market risk proxy during the New York session.
+ */
 @Component("forex")
 class ForexStrategy(
     private val priceRepository: PriceRepository,
     private val clock: Clock = Clock.systemUTC(),
 ) : PredictionStrategy {
 
+    /** {@inheritDoc} */
     override fun predict(symbol: String, history: List<MarketPrice>): Direction {
         if (history.isEmpty()) return Direction.UP
 

@@ -9,6 +9,11 @@ import pl.bamm.priceseer.domain.port.PriceRepository
 import java.sql.ResultSet
 import java.sql.Timestamp
 
+/**
+ * PostgreSQL-backed implementation of {@link PriceRepository} using Spring {@link JdbcTemplate}.
+ * Uses upsert ({@code ON CONFLICT DO NOTHING}) to handle duplicate candles.
+ * Active when the {@code in-memory} profile is not set.
+ */
 @Profile("!in-memory")
 @Repository
 class JdbcPriceRepository(
@@ -16,6 +21,7 @@ class JdbcPriceRepository(
     @Value("\${app.history-size:120}") private val historySize: Int,
 ) : PriceRepository {
 
+    /** {@inheritDoc} */
     override fun store(price: MarketPrice) {
         jdbc.update(
             """
@@ -28,6 +34,7 @@ class JdbcPriceRepository(
         )
     }
 
+    /** {@inheritDoc} */
     override fun history(symbol: String): List<MarketPrice> =
         jdbc.query(
             """
@@ -41,6 +48,7 @@ class JdbcPriceRepository(
             symbol, historySize,
         ).reversed()
 
+    /** {@inheritDoc} */
     override fun latest(symbol: String): MarketPrice? =
         jdbc.query(
             """

@@ -6,6 +6,10 @@ import org.springframework.stereotype.Component
 import pl.bamm.priceseer.domain.model.Prediction
 import pl.bamm.priceseer.domain.port.PredictionPort
 
+/**
+ * Kafka-backed implementation of {@link PredictionPort} that publishes
+ * Protobuf-encoded predictions to the {@code predictions} topic.
+ */
 @Component
 class PredictionProducer(
     private val kafkaTemplate: KafkaTemplate<String, ByteArray>,
@@ -13,6 +17,7 @@ class PredictionProducer(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /** {@inheritDoc} */
     override fun send(prediction: Prediction) {
         val bytes = ProtobufEncoder.encode(prediction)
         kafkaTemplate.send(TOPIC, prediction.symbol, bytes)

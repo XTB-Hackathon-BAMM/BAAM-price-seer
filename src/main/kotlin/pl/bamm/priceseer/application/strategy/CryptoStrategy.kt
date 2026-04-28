@@ -8,11 +8,18 @@ import pl.bamm.priceseer.domain.port.PriceRepository
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+/**
+ * Prediction strategy for cryptocurrency instruments ({@code BTC/USD}, {@code ETH/USD}).
+ *
+ * <p>Uses a multi-step decision tree: volatility regime detection, ATR-filtered momentum,
+ * RSI signals, Doji candle detection, and BTC as a leading indicator for ETH.
+ */
 @Component("crypto")
 class CryptoStrategy(
     private val priceRepository: PriceRepository,
 ) : PredictionStrategy {
 
+    /** {@inheritDoc} */
     override fun predict(symbol: String, history: List<MarketPrice>): Direction {
         if (history.isEmpty()) return Direction.UP
 
