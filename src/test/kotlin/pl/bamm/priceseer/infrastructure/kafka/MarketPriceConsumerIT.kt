@@ -6,21 +6,28 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import pl.bamm.priceseer.application.PredictionApplicationService
+import pl.bamm.priceseer.fixtures.TestDatabase
 import pl.bamm.priceseer.fixtures.TestKafka
 import pl.bamm.priceseer.fixtures.marketPriceBytes
 
 @SpringBootTest
+@ActiveProfiles("test")
 class MarketPriceConsumerIT {
 
     companion object {
         @JvmStatic
         @DynamicPropertySource
-        fun kafkaProperties(registry: DynamicPropertyRegistry) {
-            TestKafka  // trigger lazy init
+        fun containerProperties(registry: DynamicPropertyRegistry) {
+            TestKafka
+            TestDatabase
             registry.add("spring.kafka.bootstrap-servers") { TestKafka.bootstrapServers }
+            registry.add("spring.datasource.url") { TestDatabase.jdbcUrl }
+            registry.add("spring.datasource.username") { "test" }
+            registry.add("spring.datasource.password") { "test" }
         }
     }
 
