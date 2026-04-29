@@ -224,6 +224,10 @@ Built with AI at the XTB Hackathon by team **BAMM**:
 > end-to-end with agentic AI assistants — from architecture decisions through strategy implementation
 > to the React dashboard.
 
+## 📐 Architecture Overview
+
+For a detailed interactive architecture diagram with DDD / Hexagonal Architecture breakdown, see the **[Technical Overview (HTML)](docs/architecture.html)**.
+
 ## 📄 License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
